@@ -3,7 +3,10 @@ import { UiCard } from '@meddleware/ui'
 import type { StatusGroup } from '../types'
 import StatusDot from './StatusDot.vue'
 
-defineProps<{ group: StatusGroup }>()
+defineProps<{
+  /** The status group to render, including its name, aggregate status, and components. */
+  group: StatusGroup
+}>()
 
 const STATUS_LABEL: Record<string, string> = {
   operational: 'Operational',

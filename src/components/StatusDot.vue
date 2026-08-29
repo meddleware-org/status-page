@@ -1,7 +1,12 @@
 <script setup lang="ts">
 import type { StatusLevel } from '../types'
 
-const props = defineProps<{ status: StatusLevel; size?: 'sm' | 'md' }>()
+const props = defineProps<{
+  /** Current health level — controls dot colour via the design-token colour map. */
+  status: StatusLevel
+  /** Dot diameter: `sm` (8 px) or `md` (12 px, default). */
+  size?: 'sm' | 'md'
+}>()
 
 const COLOR_MAP: Record<StatusLevel, string> = {
   operational: 'var(--mw-ok-500)',

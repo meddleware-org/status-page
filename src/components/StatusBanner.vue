@@ -3,7 +3,9 @@ import type { StatusLevel } from '../types'
 import StatusDot from './StatusDot.vue'
 
 defineProps<{
+  /** Aggregate system status — drives the banner label and colour. */
   overall: StatusLevel
+  /** ISO 8601 timestamp when the snapshot was generated; displayed as a formatted time. */
   generatedAt: string
 }>()
 
