@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { StatusLevel } from '../types'
+import type { StatusLevel } from '@meddleware/ui'
 import StatusDot from './StatusDot.vue'
 
 defineProps<{

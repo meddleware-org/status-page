@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { StatusLevel } from '../types'
+import type { StatusLevel } from '@meddleware/ui'
 
 const props = defineProps<{
   /** Current health level — controls dot colour via the design-token colour map. */

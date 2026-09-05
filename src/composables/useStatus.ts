@@ -1,5 +1,6 @@
 import { ref, onMounted, onUnmounted } from 'vue'
-import type { StatusSnapshot } from '../types'
+import { parseSnapshot } from '@meddleware/ui'
+import type { StatusSnapshot } from '@meddleware/ui'
 import { API_BASE } from '../config'
 
 /**
@@ -18,7 +19,9 @@ export function useStatus() {
     try {
       const res = await window.fetch(`${API_BASE}/api/status`)
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      snapshot.value = (await res.json()) as StatusSnapshot
+      const snap = parseSnapshot(await res.json())
+      if (!snap) throw new Error('unexpected response shape')
+      snapshot.value = snap
       error.value = null
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'failed to fetch status'

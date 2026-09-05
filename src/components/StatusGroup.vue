@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { UiCard } from '@meddleware/ui'
-import type { StatusGroup } from '../types'
+import type { StatusGroup } from '@meddleware/ui'
 import StatusDot from './StatusDot.vue'
 
 defineProps<{
