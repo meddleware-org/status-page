@@ -25,7 +25,9 @@ jobs:
         with:
           node-version: '24'
       - name: Install dependencies
-        run: npm install
+        run: npm ci
+      - name: Audit dependencies (npm advisory DB; complements Trivy)
+        run: npm audit --audit-level=high
       - name: Type check
         run: npm run type-check
 
@@ -39,7 +41,7 @@ jobs:
         with:
           node-version: '24'
       - name: Install dependencies
-        run: npm install
+        run: npm ci
       - name: Build
         run: npm run build
 

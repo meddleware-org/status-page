@@ -1,11 +1,11 @@
 # ── Build stage ───────────────────────────────────────────────────────────────
-FROM node:22-slim AS build
+FROM node:24-slim AS build
 
 WORKDIR /app
 
 # Install deps first so this layer is cached on code-only changes.
-COPY package.json ./
-RUN npm install
+COPY package.json package-lock.json ./
+RUN npm ci
 
 COPY . .
 

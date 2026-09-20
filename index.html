@@ -5,6 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Meddleware — Service Status</title>
     <meta name="description" content="Live status of Meddleware platform services." />
+    <!--
+      Defence-in-depth CSP. The SPA is same-origin only: it loads its own bundle and polls
+      GET /api/status on the same host. `style-src` allows 'unsafe-inline' because Vite/Vue emit
+      inline <style>; no inline scripts are used. `frame-ancestors` and a report-uri are omitted
+      here (browsers ignore frame-ancestors in a <meta> CSP) and are applied at the nginx/edge
+      layer instead — see SECURITY.md.
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; connect-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; object-src 'none'; base-uri 'none'"
+    />
   </head>
   <body>
     <div id="app"></div>

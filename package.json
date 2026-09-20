@@ -1,23 +1,28 @@
 {
   "name": "@meddleware/status-page",
   "private": true,
-  "version": "0.1.3",
+  "version": "0.1.4",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc -p tsconfig.build.json && vite build",
-    "type-check": "vue-tsc --noEmit"
+    "type-check": "vue-tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
-    "@meddleware/design-tokens": "^0.1.2",
-    "@meddleware/ui": "^0.1.6",
-    "vue": "^3.5.42"
+    "@meddleware/design-tokens": "^0.1.3",
+    "@meddleware/ui": "^0.1.13",
+    "vue": "^3.5.43"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
-    "@vitejs/plugin-vue": "^6.0.8",
+    "@vitejs/plugin-vue": "^6.0.9",
+    "@vue/test-utils": "^2.5.1",
+    "jsdom": "^30.1.0",
     "typescript": "^6.0.0",
-    "vite": "^8.2.2",
+    "vite": "^8.3.0",
+    "vitest": "~5.0.1",
     "vue-tsc": "~3.3.11"
   }
 }

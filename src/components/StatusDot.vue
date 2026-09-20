@@ -9,9 +9,9 @@ const props = defineProps<{
 }>()
 
 const COLOR_MAP: Record<StatusLevel, string> = {
-  operational: 'var(--mw-ok-500)',
-  degraded: 'var(--mw-gold-500)',
-  down: 'var(--mw-danger-500)',
+  operational: 'var(--ok)',
+  degraded: 'var(--warning)',
+  down: 'var(--danger)',
   unknown: 'var(--muted)',
 }
 </script>

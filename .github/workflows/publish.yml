@@ -56,6 +56,13 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Assert same-origin API base
+        run: |
+          if [ -n "${{ vars.VITE_API_BASE }}" ]; then
+            echo "ERROR: VITE_API_BASE must be empty for public production images (same-origin). Got: ${{ vars.VITE_API_BASE }}"
+            exit 1
+          fi
+
       - name: Compute tags and labels
         id: meta
         uses: docker/metadata-action@v6.2.0
@@ -119,6 +126,7 @@ jobs:
     continue-on-error: true
     permissions:
       contents: read
+      id-token: write  # keyless cosign signing (Sigstore Fulcio/Rekor) of the private image
     steps:
       - uses: actions/checkout@v7.0.1
       - name: Set up QEMU
@@ -142,6 +150,7 @@ jobs:
           flavor: |
             latest=auto
       - name: Build and push
+        id: build
         uses: docker/build-push-action@v7.3.0
         with:
           context: .
@@ -153,7 +162,21 @@ jobs:
           provenance: mode=max
           build-args: |
             VITE_API_BASE=${{ vars.VITE_API_BASE || '' }}
+
+      # Keyless cosign signing of the private image. The self-hosted registry is CNCF
+      # `distribution` v3, which stores cosign `.sig` OCI artifacts, so the signature is
+      # retained alongside the image (parity with the public quay.io/Docker Hub images).
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v4.1.2
+      - name: Sign image (keyless)
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+          PRIVATE_REGISTRY: ${{ vars.PRIVATE_REGISTRY || 'registry.meddleware.co.uk' }}
+          PRIVATE_NAMESPACE: ${{ vars.PRIVATE_NAMESPACE || 'meddleware-org' }}
+        run: |
+          cosign sign --yes "${PRIVATE_REGISTRY}/${PRIVATE_NAMESPACE}/${IMAGE}@${DIGEST}"
+
       - name: Summary
         if: always()
         run: |
-          echo "Pushed to private registry @ ${{ vars.PRIVATE_REGISTRY || 'registry.meddleware.co.uk' }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Pushed & signed to private registry @ ${{ vars.PRIVATE_REGISTRY || 'registry.meddleware.co.uk' }}" >> "$GITHUB_STEP_SUMMARY"
