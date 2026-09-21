@@ -1,7 +1,7 @@
 {
   "name": "@meddleware/status-page",
   "private": true,
-  "version": "0.1.7",
+  "version": "0.1.8",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@meddleware/design-tokens": "^0.1.5",
-    "@meddleware/ui": "^0.1.19",
+    "@meddleware/ui": "^0.1.20",
     "vue": "^3.5.43"
   },
   "devDependencies": {
