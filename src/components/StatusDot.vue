@@ -1,28 +1,21 @@
 <script setup lang="ts">
+// Decorative health dot. It always sits beside a visible status label (which carries the
+// meaning), so it is hidden from assistive technology; the level only selects a colour class.
 import type { StatusLevel } from '@meddleware/ui'
 
-const props = defineProps<{
-  /** Current health level — controls dot colour via the design-token colour map. */
-  status: StatusLevel
-  /** Dot diameter: `sm` (8 px) or `md` (12 px, default). */
-  size?: 'sm' | 'md'
-}>()
-
-const COLOR_MAP: Record<StatusLevel, string> = {
-  operational: 'var(--ok)',
-  degraded: 'var(--warning)',
-  down: 'var(--danger)',
-  unknown: 'var(--muted)',
-}
+withDefaults(
+  defineProps<{
+    /** Current health level — selects the design-token colour. */
+    status: StatusLevel
+    /** Dot diameter: `sm` (8 px) or `md` (12 px, default). */
+    size?: 'sm' | 'md'
+  }>(),
+  { size: 'md' },
+)
 </script>
 
 <template>
-  <span
-    class="status-dot"
-    :class="`status-dot--${props.size ?? 'md'}`"
-    :style="{ background: COLOR_MAP[props.status] }"
-    :aria-label="props.status"
-  />
+  <span class="status-dot" :class="[`status-dot--${size}`, `status-dot--${status}`]" aria-hidden="true" />
 </template>
 
 <style scoped>
@@ -38,5 +31,17 @@ const COLOR_MAP: Record<StatusLevel, string> = {
 .status-dot--md {
   width: 12px;
   height: 12px;
+}
+.status-dot--operational {
+  background: var(--ok);
+}
+.status-dot--degraded {
+  background: var(--warning);
+}
+.status-dot--down {
+  background: var(--danger);
+}
+.status-dot--unknown {
+  background: var(--muted);
 }
 </style>

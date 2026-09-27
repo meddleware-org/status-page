@@ -14,9 +14,8 @@ const { mode, set } = useColorMode()
       <template #brand>
         <span class="brand">meddleware</span>
       </template>
-      <template #center>
-        <span class="page-title">Service Status</span>
-      </template>
+      <!-- AppHeader has no "center" slot: default-slot content follows the brand. -->
+      <h1 class="page-title">Service Status</h1>
       <template #actions>
         <ColorModeControl :model-value="mode" @update:model-value="set" />
       </template>
@@ -46,9 +45,7 @@ const { mode, set } = useColorMode()
     </main>
 
     <AppFooter>
-      <template #center>
-        <span class="footer-note">Checks run server-side every 15 s. Results are cached — this page never probes internal services directly.</span>
-      </template>
+      <p class="footer-note">Checks run server-side every 15 s. Results are cached — this page never probes internal services directly.</p>
     </AppFooter>
   </div>
 </template>
@@ -70,7 +67,10 @@ const { mode, set } = useColorMode()
 }
 
 .page-title {
+  flex: 1;
+  margin: 0;
   font-size: 0.9375rem;
+  font-weight: 400;
   color: var(--mw-panel-dark-muted);
 }
 
@@ -113,6 +113,7 @@ const { mode, set } = useColorMode()
 }
 
 .footer-note {
+  margin: 0;
   font-size: 0.8125rem;
   color: var(--muted);
 }
