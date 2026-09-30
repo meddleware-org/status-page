@@ -17,7 +17,8 @@ export function useStatus() {
 
   async function poll() {
     try {
-      const res = await window.fetch(`${API_BASE}/api/status`)
+      // Bounded so a hung request cannot stall polling (the next poll retries).
+      const res = await window.fetch(`${API_BASE}/api/status`, { signal: AbortSignal.timeout(10_000) })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const snap = parseSnapshot(await res.json())
       if (!snap) throw new Error('unexpected response shape')
