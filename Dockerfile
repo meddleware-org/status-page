@@ -1,9 +1,9 @@
 # ── Build stage ───────────────────────────────────────────────────────────────
-# Content-Security-Policy served by static-server (verified 2026-09-30: production build loaded in
-# Chromium under this policy with zero violations). script-src stays 'self'; connect-src allows
-# any https origin because RPC, relay, aggregator and Seal key-server hosts are partly operator- or
-# chain-configured; img-src allows https:/data:/blob: for on-chain images and local previews.
-ARG CSP="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; upgrade-insecure-requests"
+# Content-Security-Policy served by static-server. The status page is same-origin only: it loads
+# its own bundle and polls GET /api/status on its own host, so connect-src is 'self'. If VITE_API_BASE
+# points at another origin, pass a CSP build arg that adds it to connect-src. style-src keeps
+# 'unsafe-inline' for the inline <style> Vite/Vue emit; there are no inline scripts.
+ARG CSP="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'self'; upgrade-insecure-requests"
 
 FROM node:24-slim@sha256:0e0ff40c39bc087845bfb27465a0df4ea419520094bc35842ff83dd8cbe6f9b6 AS build
 
