@@ -25,14 +25,16 @@ treated as high severity:
 
 ## Content-Security-Policy
 
-`index.html` ships a defence-in-depth CSP `<meta>`: `default-src 'self'; connect-src 'self';
-img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; object-src 'none';
-base-uri 'none'`. There are no inline scripts; `'unsafe-inline'` is permitted only for styles.
+The policy is a response header: the Dockerfile `CSP` build arg, served by static-server as
+`CONTENT_SECURITY_POLICY` — `default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';
+img-src 'self' data:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none';
+form-action 'none'; frame-ancestors 'self'; upgrade-insecure-requests`. There are no inline scripts;
+`'unsafe-inline'` is permitted only for styles.
 
-`frame-ancestors` and a `report-uri`/`report-to` are **not** expressible in a `<meta>` CSP (browsers
-ignore `frame-ancestors` there) and are applied at the **nginx/edge layer** — the edge is expected to
-send a response-header CSP that adds `frame-ancestors 'none'` and, ideally, reporting. The meta CSP
-is the in-app baseline, not a replacement for the edge header.
+static-server (0.1.3+) appends a fresh `'nonce-…'` to `script-src` on every response. Cloudflare
+reads it and tags the inline script its JavaScript Detections injects (always on with Bot Fight
+Mode), so that script runs without `'unsafe-inline'`. For the same reason there is **no** `<meta>`
+CSP: browsers enforce every policy, and an edge can add its nonce only to the header policy.
 
 ## Image signing
 
