@@ -27,7 +27,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Audit dependencies (npm advisory DB; complements Trivy)
-        run: npm audit --audit-level=high
+        run: node .github/audit-gate.mjs
       - name: Type check
         run: npm run type-check
       - name: Lint CSS (stylelint)
