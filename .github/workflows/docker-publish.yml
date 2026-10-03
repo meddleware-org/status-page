@@ -77,9 +77,12 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Assert same-origin API base
+        # Passed through env, never spliced into the script, so the value cannot become shell code.
+        env:
+          API_BASE: ${{ vars.VITE_API_BASE }}
         run: |
-          if [ -n "${{ vars.VITE_API_BASE }}" ]; then
-            echo "ERROR: VITE_API_BASE must be empty for public production images (same-origin). Got: ${{ vars.VITE_API_BASE }}"
+          if [ -n "$API_BASE" ]; then
+            echo "::error::VITE_API_BASE must be empty for public production images (same-origin). Got: $API_BASE"
             exit 1
           fi
 
