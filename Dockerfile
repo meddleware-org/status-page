@@ -5,7 +5,7 @@
 # 'unsafe-inline' for the inline <style> Vite/Vue emit; there are no inline scripts.
 ARG CSP="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'self'; upgrade-insecure-requests"
 
-FROM node:24-slim@sha256:0e0ff40c39bc087845bfb27465a0df4ea419520094bc35842ff83dd8cbe6f9b6 AS build
+FROM node:25-slim@sha256:81db02c4b671288a03915da9534dbd54f96d0e7c24d80ccc54f5b36b2e684370 AS build
 
 WORKDIR /app
 
@@ -24,7 +24,7 @@ ENV VITE_API_BASE=${VITE_API_BASE}
 RUN npm run build
 
 # ── Runtime stage ──────────────────────────────────────────────────────────────
-FROM quay.io/meddleware-org/static-server:0.1.3@sha256:664e1c460b4558e20bf3f1b6b2a7ef5e914392edc0a4a125867d6fa822ff92e5
+FROM quay.io/meddleware-org/static-server:0.1.6@sha256:be51c4ee9c80fbbeda1f546efa918a72628388bd0fac0f52876e8234b51275c0
 ARG CSP
 ENV CONTENT_SECURITY_POLICY="${CSP}"
 
