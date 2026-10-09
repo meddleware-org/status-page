@@ -1,7 +1,7 @@
 {
   "name": "@meddleware/status-page",
   "private": true,
-  "version": "0.1.16",
+  "version": "0.1.17",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -15,8 +15,8 @@
     "lint:html": "html-validate \"src/**/*.vue\""
   },
   "dependencies": {
-    "@meddleware/design-tokens": "^0.1.8",
-    "@meddleware/ui": "^0.1.30",
+    "@meddleware/design-tokens": "^0.1.9",
+    "@meddleware/ui": "^0.1.31",
     "vue": "^3.5.43"
   },
   "devDependencies": {
