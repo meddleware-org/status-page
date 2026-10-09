@@ -21,7 +21,7 @@ COPY . .
 ARG VITE_API_BASE=""
 ENV VITE_API_BASE=${VITE_API_BASE}
 
-RUN npm run build
+RUN npm run build && npm run licenses
 
 # ── Runtime stage ──────────────────────────────────────────────────────────────
 FROM quay.io/meddleware-org/static-server:0.1.7@sha256:2e2273115b7575acbeb01c6d75f867be67125405f1bda5d956ae512d13c92379
@@ -29,6 +29,9 @@ ARG CSP
 ENV CONTENT_SECURITY_POLICY="${CSP}"
 
 COPY --from=build /app/dist /app/public
+# The lockfile lets SBOM scanners see the npm packages the bundle was built from (the bundle itself carries no
+# package metadata). It sits outside the served directory; THIRD_PARTY_LICENSES is served with the site.
+COPY --from=build /app/package-lock.json /usr/share/doc/status-page/package-lock.json
 
 ENV SERVE_DIR=/app/public \
     SPA_FALLBACK=true \
