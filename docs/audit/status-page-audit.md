@@ -227,7 +227,7 @@ the `status-page:0.1.3` tag in the base Deployment is only the readable default 
 
 ### F15 — The vitest suite is not run by CI or the release
 
-**Severity:** Low   **Disposition:** RESOLVED (0.1.20, commit pending)
+**Severity:** Low   **Disposition:** RESOLVED (0.1.20, commit `8ce8d13`)
 **Where:** `.github/workflows/node-ci.yml`
 **Issue:** `node-ci.yml` had no `npm test` step, so neither CI nor the release (which calls it, F13)
 executes `tests/render-escaping.test.ts`. The TS lens (Section C) calls a test project that CI never
@@ -244,7 +244,7 @@ blocks inline script.
 
 ### F16 — No container probe of the built image in CI
 
-**Severity:** Info   **Disposition:** RESOLVED (0.1.20, commit pending)
+**Severity:** Info   **Disposition:** RESOLVED (0.1.20, commit `8ce8d13`)
 **Where:** `.github/workflows/`
 **Issue:** the IMG lens (Section C) asks CI to probe the running container: health, served headers
 and non-root execution. Neither workflow started the image. The Dockerfile is covered by the Trivy
@@ -324,7 +324,7 @@ listed as best-effort in B.2.
 
 ### F21 — No build-time check for inline scripts
 
-**Severity:** Low   **Disposition:** RESOLVED (0.1.20, commit pending)
+**Severity:** Low   **Disposition:** RESOLVED (0.1.20, commit `8ce8d13`)
 **Where:** `.github/workflows/node-ci.yml`, `Dockerfile`
 **Issue:** B.VUE-1 asks for a build-time check that fails when the build emits an inline script not
 covered by the CSP. There was none. Then the build emits none: `dist/index.html` carries one
@@ -492,7 +492,7 @@ linters and html-validate are quality gates, not security evidence.
 - [x] test-mode guards: none needed — no test mode exists (B.VUE-2)
 - [x] release gate equals CI for the image (F13)
 - [x] every test project runs in CI — `npm test` in `node-ci.yml` (`19860cf`), reached by the release through `verify` (F15)
-- [x] container probe in CI — the `image` job runs `scripts/smoke.sh` (F16); inline-script build check — `scripts/check-csp-inline.mjs` in the Dockerfile and CI (F21); 0.1.20, commit pending
+- [x] container probe in CI — the `image` job runs `scripts/smoke.sh` (F16); inline-script build check — `scripts/check-csp-inline.mjs` in the Dockerfile and CI (F21); 0.1.20, commit `8ce8d13`
 
 ### pre-mainnet
 
@@ -566,7 +566,7 @@ linters and html-validate are quality gates, not security evidence.
   `status-checks` Secret row to B.2, and ticked Section D with evidence. Stale facts corrected
   (static-server 0.1.3 to 0.1.7, ui 0.1.31, design-tokens 0.1.9). PLATFORM lens not triggered: the Secret
   is the platform's and is mounted by `platform-probe`.
-- 2026-10-18 — fix wave (0.1.20, commit pending): design-tokens ^0.1.10, static-server 0.1.8
+- 2026-10-18 — fix wave (0.1.20, commit `8ce8d13`): design-tokens ^0.1.10, static-server 0.1.8
   (`sha256:e32cf42b…4000`, verified against the quay.io tag API). platform-probe 0.1.7's default-2xx
   rule needs no page change (snapshot shape unchanged; F19). F15 RESOLVED (`npm test` in CI since
   `19860cf`, release via `verify`), F16 RESOLVED (`scripts/smoke.sh` + `image` CI job, run green with
