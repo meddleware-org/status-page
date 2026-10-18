@@ -52,7 +52,7 @@ Images are multi-arch, carry an SBOM + SLSA provenance, and are signed with keyl
 ```bash
 cosign verify \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-  --certificate-identity-regexp 'https://github.com/meddleware-org/status-page/.*' \
+  --certificate-identity-regexp '^https://github\.com/meddleware-org/status-page/\.github/workflows/docker-publish\.yml@refs/tags/v' \
   quay.io/meddleware-org/status-page:<tag>
 ```
 
