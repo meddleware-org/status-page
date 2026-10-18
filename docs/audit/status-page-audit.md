@@ -8,16 +8,16 @@
 **Runtime targets:** browser   **Peer dependencies:** none
 **Build tool:** vite 8.3.3, @vitejs/plugin-vue 6.0.9, vue 3.5.43, vitest 5.0.3 (jsdom 30)   **Hosting:** container image (static-server 0.1.8) behind Cloudflare; no static host   **Embedding hosts:** none
 **VITE_\* inventory:** `VITE_API_BASE` only — base URL of the probe API, baked at build, default empty (same-origin), must be empty for the public image (F4); no per-network IDs; not a secret
-**Images:** `quay.io/meddleware-org/status-page:0.1.19@sha256:9dd64c5f7437f0947d7b3b74afd4b06669f7b890956c13c06d08c022d1eb2475` (Docker Hub `meddleware/status-page`; best-effort self-hosted registry mirror, see F18)
-**Base images:** build `node:24-slim@sha256:0e0ff40c…f9b6`; runtime `quay.io/meddleware-org/static-server:0.1.8@sha256:e32cf42b…4000` (source 0.1.8; the deployed 0.1.19 image still carries 0.1.7)
+**Images:** `quay.io/meddleware-org/status-page:0.1.20@sha256:8ec62b1b94764ad75843e2aea08b397f082e6907616d05e82a33678e06e8f115` (Docker Hub `meddleware/status-page`, same digest; cosign keyless signature verified 2026-10-18 against the workflow-anchored identity, `verify-digests.sh` 16/16; best-effort self-hosted registry mirror, see F18). Superseded 0.1.19 was `sha256:9dd64c5f…2475`
+**Base images:** build `node:24-slim@sha256:0e0ff40c…f9b6`; runtime `quay.io/meddleware-org/static-server:0.1.8@sha256:e32cf42b…4000` (0.1.8; the 0.1.19 image deployed 2026-10-09 carried 0.1.7)
 **Runtime user:** 65534:65534 (`USER`, `runAsNonRoot`)   **Runtime FS:** read-only root, nothing writable mounted
 **Deployed by:** `k8s/base/apps/status` via the overlay `k8s/clusters/meddleware-org/apps` (digest from `config/images.yaml`)
 **Build args:** `VITE_API_BASE` (public, empty) and `CSP` (the response-header policy) — none secret
-**Deployment status:** image `quay.io/meddleware-org/status-page` (+ Docker Hub; best-effort signed push to the self-hosted registry, currently without credentials) serving `status.meddleware.co.uk` at 0.1.19 (deployed 2026-10-09; live headers and `/api/status` checked 2026-10-09; the snapshot lists Identity & Access, Container Registry and Chain Access → Chain index, all operational)
-**Review date:** 2026-09-19 (first pass) · re-verified 2026-10-03 · re-verified 2026-10-09 · fix wave 2026-10-18 (0.1.20, not yet deployed)
+**Deployment status:** image `quay.io/meddleware-org/status-page` (+ Docker Hub; best-effort signed push to the self-hosted registry, currently without credentials) serving `status.meddleware.co.uk` at 0.1.20 (`sha256:8ec62b1b…f115`; release tag `v0.1.20` = `fe94a6f`; released, signature verified and deployed 2026-10-18, rollout succeeded; 0.1.19 was deployed 2026-10-09; live headers and `/api/status` re-checked 2026-10-18; the snapshot lists Identity & Access, Container Registry and Chain Access → Chain index, all operational)
+**Review date:** 2026-09-19 (first pass) · re-verified 2026-10-03 · re-verified 2026-10-09 · fix wave 2026-10-18 (0.1.20, released and deployed 2026-10-18)
 **Reviewer:** Internal review
 **Severity ceiling:** Low — no backend, accounts, secrets or writes; the worst case is misleading status text from a compromised probe.
-**Status:** fix wave 2026-10-18 (0.1.20) — 21 findings (8 Positive): 10 RESOLVED, 1 ADJUDICATED, 2 DEFERRED (both maintainer-only)
+**Status:** fix wave 2026-10-18 (0.1.20, released and deployed 2026-10-18, signature verified, rollout succeeded) — 21 findings (8 Positive): 10 RESOLVED, 1 ADJUDICATED, 2 DEFERRED (both maintainer-only)
 
 ---
 
@@ -58,7 +58,7 @@ live headers and the live snapshot, and applied the container-image lens:
 - **F19 (Positive)** — the new Chain Access → Chain index check needs no page change; the check
   definitions stay in the SOPS-encrypted `status-checks` Secret that `platform-probe` mounts.
 
-The 2026-10-18 fix wave (0.1.20, not yet released) closed the three code findings:
+The 2026-10-18 fix wave (0.1.20, released and deployed 2026-10-18) closed the three code findings:
 
 - **F15 (RESOLVED)** — `npm test` runs in `node-ci.yml` (commit `19860cf`), and the release reaches it
   through `verify`. **F16 (RESOLVED)** — a CI job builds the image and probes the running container
@@ -215,13 +215,12 @@ govulncheck on 2026-10-09 found 11 in Go 1.26.7), and the Dockerfile did not sta
 **Impact:** the served binary carried fixable stdlib advisories; the Dockerfile did not document the
 user it relies on.
 **Remediation / evidence:** the runtime stage is
-`quay.io/meddleware-org/static-server:0.1.7@sha256:2e227311…2379` (Go 1.26.9; the same digest is in the
-overlay `images:` block) and the Dockerfile sets `USER 65534:65534`. The pod runs `runAsNonRoot`
+`quay.io/meddleware-org/static-server:0.1.7@sha256:2e227311…2379` (Go 1.26.9; as found 2026-10-09; the 0.1.20 image is built on 0.1.8, `sha256:e32cf42b…4000`) and the Dockerfile sets `USER 65534:65534`. The pod runs `runAsNonRoot`
 (uid/gid 65534), `readOnlyRootFilesystem`, `allowPrivilegeEscalation: false`, all capabilities
 dropped, `seccompProfile: RuntimeDefault` and `automountServiceAccountToken: false`; readiness and
 liveness probes hit `/`; requests 5m/16Mi, limits 100m/32Mi; a default-deny ingress NetworkPolicy
 admits only the nginx-ingress namespace on 8080. The deployed ref is the digest in `config/images.yaml`
-(0.1.19, `sha256:9dd64c5f…2475`), stamped into `k8s/clusters/meddleware-org/apps/kustomization.yaml`;
+(0.1.20, `sha256:8ec62b1b…f115` since 2026-10-18; 0.1.19 was `sha256:9dd64c5f…2475`), stamped into `k8s/clusters/meddleware-org/apps/kustomization.yaml`;
 the `status-page:0.1.3` tag in the base Deployment is only the readable default that the overlay
 `images:` digest replaces.
 
@@ -414,7 +413,7 @@ for dev tooling) declares an install script; it is not installed on Linux or in 
 ### B.VUE-1 Hosting headers
 
 The only hosting path is the image behind Cloudflare. Seen with `curl -I https://status.meddleware.co.uk/`
-on 2026-10-10 (0.1.19):
+on 2026-10-10 (0.1.19; re-checked 2026-10-18 on 0.1.20: HTTP 200 with the same CSP, HSTS, `nosniff`, `X-Frame-Options`, `Referrer-Policy` and `Permissions-Policy` headers):
 
 | Header | Observed |
 | --- | --- |
@@ -472,7 +471,7 @@ linters and html-validate are quality gates, not security evidence.
 | --- | --- | --- | --- |
 | Rendering and parsing | yes | — | `npm test` (CI and release); ui tests (CI) |
 | Polling against the real probe | no | live sweep | Phase 7 Chromium sweep; live `/api/status` and `/` headers read with `curl` on 2026-10-10 |
-| Built image: served headers, `/THIRD_PARTY_LICENSES`, non-root pod | no | live deployment | manual `curl -I` 2026-10-10; `bootstrap/images/verify-digests.sh` (16/16 valid 2026-10-09); `scripts/smoke.sh` in CI (F16) |
+| Built image: served headers, `/THIRD_PARTY_LICENSES`, non-root pod | no | live deployment | manual `curl -I` 2026-10-10 and 2026-10-18; `bootstrap/images/verify-digests.sh` (16/16 valid 2026-10-09 and 2026-10-18); `scripts/smoke.sh` in CI (F16) |
 
 ## Section D — Deployment-readiness gates
 
@@ -485,8 +484,8 @@ linters and html-validate are quality gates, not security evidence.
 
 ### pre-testnet
 
-- [x] deployed with digest pinning; CSP and HSTS verified; `SECURITY.md` present — 0.1.19 digest in `config/images.yaml` and the overlay, headers seen 2026-10-10 (B.VUE-1)
-- [x] 0.1.19 deployed (2026-10-09); release run green; cosign signature valid (`verify-digests.sh` 16/16)
+- [x] deployed with digest pinning; CSP and HSTS verified; `SECURITY.md` present — 0.1.20 digest in `config/images.yaml` and the overlay, headers seen 2026-10-10 (0.1.19) and again 2026-10-18 (0.1.20, `curl -I`) (B.VUE-1)
+- [x] 0.1.20 deployed (2026-10-18; 0.1.19 on 2026-10-09); release run green; cosign signature valid against the workflow-anchored identity (`verify-digests.sh` 16/16, 2026-10-18)
 - [x] non-root runtime; pod security context complete; probes and limits set (F14)
 - [x] audit gate in CI and in the release (via `node-ci.yml`); no install-time code (B.TS-2); nothing to `npm pack` (`private: true`)
 - [x] test-mode guards: none needed — no test mode exists (B.VUE-2)
@@ -573,3 +572,4 @@ linters and html-validate are quality gates, not security evidence.
   rootless podman), F21 RESOLVED (`scripts/check-csp-inline.mjs` in the Dockerfile and CI, 6 tests).
   F17 re-checked (stays ADJUDICATED), F18 and F20 left (maintainer). Counts: 8/8 tests; 10 RESOLVED,
   1 ADJUDICATED, 2 DEFERRED. Section D: the two code gates ticked; the two maintainer gates stay open.
+- 2026-10-18 — released and deployed (`v0.1.20` = `fe94a6f`, `0.1.20@sha256:8ec62b1b94764ad75843e2aea08b397f082e6907616d05e82a33678e06e8f115`), verified live. Cosign keyless signature verified against the workflow-anchored identity (`verify-digests.sh` 16/16); rollout (`kubectl apply -k`, apps overlay) succeeded; the live page answers 200 with the security headers and the status API reads all components operational (re-read 2026-10-18), consistent with platform-probe 0.1.7's stricter default changing no state. F18 and F20 (maintainer) unchanged.
