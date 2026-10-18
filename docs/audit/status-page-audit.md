@@ -290,8 +290,9 @@ and Docker Hub consoles. Bounds in place: the actions are pinned by commit SHA, 
 on `v*` tags with `contents: read` (plus `id-token` and `attestations` on the publish job), and the
 cluster verifies the signature. The documented verification command pins the OIDC issuer and the
 identity regexp `https://github.com/meddleware-org/status-page/.*` (repository-wide, any workflow and
-ref; `verify-digests.sh` uses the same repository-anchored pattern). Narrowing it to the publish
-workflow and tag refs is in the implementation suggestions.
+ref). The cluster check `verify-digests.sh` no longer uses that pattern: since 2026-10-18 its default is
+workflow-anchored (`^https://github\.com/meddleware-org/${name}/\.github/workflows/docker-publish\.yml@refs/tags/v`; 16/16 valid), so only the README command stays repository-wide.
+Narrowing the README command to the publish workflow and tag refs is in the implementation suggestions.
 
 ### F19 — Chain index health check needs no page change
 
@@ -378,7 +379,7 @@ fails, Dockerfile CSP read). The compensating control stays: `script-src 'self'`
 | IMG | Health & resources | HOLDS — probes on `/`; 5m/16Mi requests, 100m/32Mi limits |
 | IMG | SBOM & notices | HOLDS — lockfile in the image, SPDX SBOM attested; `/THIRD_PARTY_LICENSES` served (F13) |
 | IMG | Scan before sign | HOLDS on the public path (Trivy, then cosign); the mirror job has none (F20) |
-| IMG | Verification command | HOLDS with a note — pins issuer and repository, not the workflow file or tag ref (F18) |
+| IMG | Verification command | HOLDS with a note — the cluster check pins `docker-publish.yml@refs/tags/v` (since 2026-10-18); the README command still pins issuer and repository only, not the workflow file or tag ref (F18) |
 | IMG | Deployment pinning | HOLDS — digest from `config/images.yaml` in the overlay |
 | IMG | Container probe, inline-script build check | HOLDS — `scripts/smoke.sh` in CI; `check-csp-inline.mjs` in the build (F16, F21) |
 
@@ -440,7 +441,7 @@ Trivy, keyless cosign signature, SPDX SBOM attested with cosign, and GitHub buil
 attestations, on quay.io and Docker Hub, none with `continue-on-error`; signed at the index digest.
 The self-hosted registry mirror is best-effort (`continue-on-error`), signed but not scanned or
 attested, and currently fails for lack of credentials (F20). Verification: the README's `cosign
-verify` pins the issuer and the repository identity (F18).
+verify` pins the issuer and the repository identity (F18); the cluster check `verify-digests.sh` pins the publish workflow and tag refs since 2026-10-18.
 
 ### B.2 Publish authority, capabilities & secret custody
 
@@ -516,7 +517,7 @@ linters and html-validate are quality gates, not security evidence.
 - **IMG-M1–IMG-M8** — hold on the public path (digest-pinned bases, `.dockerignore`, lockfile install,
   no secrets, non-root restricted pod, deploy by digest, signature with SBOM and provenance, scan
   before sign, licence notices, verification command); the self-hosted mirror is best-effort and does
-  not meet M7/M8 (F20); the verification command pins the repository, not the workflow (F18).
+  not meet M7/M8 (F20); the README verification command pins the repository, not the workflow (F18; the cluster check is workflow-anchored since 2026-10-18).
 - **TS-M1–TS-M8 exceptions** — no size cap before parsing (F17).
 
 ## Implementation suggestions (SHOULD / MAY)
@@ -524,7 +525,7 @@ linters and html-validate are quality gates, not security evidence.
 - MAY add a `useStatus` test with a mocked `fetch` (timeout, non-OK, malformed body).
 - (Done 0.1.20) `npm test` in `node-ci.yml` (F15); the inline-script build check (F21); the container
   probe job (F16).
-- MAY narrow the documented `cosign verify` identity to the publish workflow and tag refs, e.g.
+- MAY narrow the documented (README) `cosign verify` identity to the publish workflow and tag refs, as `verify-digests.sh` already does, e.g.
   `--certificate-identity-regexp '^https://github.com/meddleware-org/status-page/\.github/workflows/docker-publish\.yml@refs/tags/v.*$'`
   (F18).
 - MAY give the Trivy step the same `|| 'meddleware-org'` namespace fallback as the other steps (F13).
@@ -573,3 +574,4 @@ linters and html-validate are quality gates, not security evidence.
   F17 re-checked (stays ADJUDICATED), F18 and F20 left (maintainer). Counts: 8/8 tests; 10 RESOLVED,
   1 ADJUDICATED, 2 DEFERRED. Section D: the two code gates ticked; the two maintainer gates stay open.
 - 2026-10-18 — released and deployed (`v0.1.20` = `fe94a6f`, `0.1.20@sha256:8ec62b1b94764ad75843e2aea08b397f082e6907616d05e82a33678e06e8f115`), verified live. Cosign keyless signature verified against the workflow-anchored identity (`verify-digests.sh` 16/16); rollout (`kubectl apply -k`, apps overlay) succeeded; the live page answers 200 with the security headers and the status API reads all components operational (re-read 2026-10-18), consistent with platform-probe 0.1.7's stricter default changing no state. F18 and F20 (maintainer) unchanged.
+- 2026-10-18 — cosign identity: the default identity in `bootstrap/images/verify-digests.sh` is now workflow-anchored (`^https://github\.com/meddleware-org/${name}/\.github/workflows/docker-publish\.yml@refs/tags/v`); all 16 deployed and contingency images verified valid against it (`STRICT=0 bash bootstrap/images/verify-digests.sh`). This audit has no separate cosign finding (the point sits inside F18, DEFERRED for the token inventory), so no disposition changes; the README `cosign verify` command still pins the repository only (`https://github.com/meddleware-org/status-page/.*`), which is what remains.
