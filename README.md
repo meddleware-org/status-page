@@ -28,7 +28,12 @@ CHECKS_CONFIG_FILE=config.example.json go run ./cmd/server
 ```bash
 npm run type-check   # vue-tsc type check only
 npm run build        # type-check + Vite production build → dist/
+npm run check:csp    # after a build: fail if dist/ has an inline <script> the Dockerfile CSP does not allow
 ```
+
+CI also builds the image and probes the running container (`scripts/smoke.sh <image>`; set
+`CONTAINER_ENGINE=podman` for rootless podman): non-root user, `/`, the security headers and CSP, the
+bundle's cache header, `/THIRD_PARTY_LICENSES`, the SPA fallback.
 
 ## Environment variables
 

@@ -1,7 +1,7 @@
 {
   "name": "@meddleware/status-page",
   "private": true,
-  "version": "0.1.19",
+  "version": "0.1.20",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -14,10 +14,11 @@
     "lint": "npm run lint:css && npm run lint:js && npm run lint:html",
     "lint:html": "html-validate \"src/**/*.vue\"",
     "licenses": "node scripts/third-party-licenses.mjs",
-    "check:licenses": "node scripts/third-party-licenses.mjs --check"
+    "check:licenses": "node scripts/third-party-licenses.mjs --check",
+    "check:csp": "node scripts/check-csp-inline.mjs @Dockerfile dist"
   },
   "dependencies": {
-    "@meddleware/design-tokens": "^0.1.9",
+    "@meddleware/design-tokens": "^0.1.10",
     "@meddleware/ui": "^0.1.31",
     "vue": "^3.5.43"
   },

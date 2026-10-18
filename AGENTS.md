@@ -35,6 +35,8 @@ npm install
 npm run dev          # Vite dev server at http://localhost:5173 (proxies /api → :8080)
 npm run type-check   # vue-tsc type check only (no emit)
 npm run build        # type-check + Vite production build → dist/
+npm run check:csp    # after a build: fail on an inline <script> the Dockerfile CSP does not allow
+bash scripts/smoke.sh <image>   # probe a built image (CONTAINER_ENGINE=podman for rootless podman)
 ```
 
 ```bash

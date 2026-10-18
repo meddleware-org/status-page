@@ -5,6 +5,19 @@ All notable changes to status-page are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.20] - 2026-10-18
+
+### Added
+
+- Build-time inline-script check (`scripts/check-csp-inline.mjs`, `npm run check:csp`): the image build and CI fail if `dist/` carries an inline `<script>` the CSP does not allow
+- Container probe in CI (`scripts/smoke.sh`): the built image runs read-only and non-root, and `/`, the security headers and CSP, the bundle cache header, `/THIRD_PARTY_LICENSES`, the SPA fallback, dot-file and method refusals are checked
+- Unit tests for the inline-script check
+
+### Changed
+
+- Depends on design-tokens ^0.1.10; image base moved to static-server 0.1.8
+- CI runs the vitest suite in the release gate through `node-ci.yml`
+
 ## [0.1.19] - 2026-10-09
 
 ### Changed

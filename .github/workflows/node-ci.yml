@@ -4,7 +4,8 @@ name: Node CI
 # The publish workflow fires only on version tags; keeping this green before
 # tagging is the release gate.
 #
-# Jobs: type-check (vue-tsc) → build (vite) → scan (Trivy filesystem)
+# Jobs: type-check (vue-tsc, linters, unit tests) → build (vite, licence notices, inline-script check)
+# → scan (Trivy filesystem) → image (build the Dockerfile and probe the running container)
 
 on:
   push:
@@ -59,6 +60,10 @@ jobs:
       - name: Third-party licence notices
         run: npm run check:licenses && test -s dist/THIRD_PARTY_LICENSES
 
+      # The image serves script-src 'self': an inline <script> in dist/ would be refused by the browser.
+      - name: No inline script outside the CSP
+        run: npm run check:csp
+
   scan:
     name: Filesystem scan (Trivy)
     runs-on: ubuntu-latest
@@ -74,3 +79,15 @@ jobs:
           exit-code: "1"
           ignore-unfixed: true
           version: v0.74.0
+
+  image:
+    name: Image (build and probe)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # Not pushed. Builds the Dockerfile as the release does (the inline-script check included) and runs the
+      # container the way the cluster does: non-root user, read-only root, no capabilities.
+      - name: Build (not pushed)
+        run: docker build --tag status-page:ci .
+      - name: Probe the container (user, /, headers, bundle, licences)
+        run: bash scripts/smoke.sh status-page:ci

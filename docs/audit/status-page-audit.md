@@ -6,18 +6,18 @@
 **Template:** AUDIT_TEMPLATE.md (2026-10-08) + AUDIT_TEMPLATE_TS.md (2026-10-08) + AUDIT_TEMPLATE_VUE.md (2026-10-08) + AUDIT_TEMPLATE_IMG.md (2026-10-08). Not triggered: `AUDIT_TEMPLATE_SUI_CLIENT.md` (no chain code; the chain index it reports on is read by `platform-probe`, not by this page), `AUDIT_TEMPLATE_AUTH.md` / `AUDIT_TEMPLATE_PROXY.md` (the page holds no credential and forwards nothing; the ingress path rule is platform configuration), `AUDIT_TEMPLATE_PLATFORM.md` (the SOPS-encrypted checks Secret that feeds the status snapshot is mounted by `platform-probe`, not by this image; it is recorded in B.2 for completeness and belongs to the platform audit).
 **Package manager / lockfile:** npm 11, committed (361 locked packages; 26 production)   **Module format:** ESM (`type: module`)   **Publish model:** image only (`private: true`)
 **Runtime targets:** browser   **Peer dependencies:** none
-**Build tool:** vite 8.3.3, @vitejs/plugin-vue 6.0.9, vue 3.5.43, vitest 5.0.3 (jsdom 30)   **Hosting:** container image (static-server 0.1.7) behind Cloudflare; no static host   **Embedding hosts:** none
+**Build tool:** vite 8.3.3, @vitejs/plugin-vue 6.0.9, vue 3.5.43, vitest 5.0.3 (jsdom 30)   **Hosting:** container image (static-server 0.1.8) behind Cloudflare; no static host   **Embedding hosts:** none
 **VITE_\* inventory:** `VITE_API_BASE` only — base URL of the probe API, baked at build, default empty (same-origin), must be empty for the public image (F4); no per-network IDs; not a secret
 **Images:** `quay.io/meddleware-org/status-page:0.1.19@sha256:9dd64c5f7437f0947d7b3b74afd4b06669f7b890956c13c06d08c022d1eb2475` (Docker Hub `meddleware/status-page`; best-effort self-hosted registry mirror, see F18)
-**Base images:** build `node:24-slim@sha256:0e0ff40c…f9b6`; runtime `quay.io/meddleware-org/static-server:0.1.7@sha256:2e227311…2379` (Go 1.26.9)
+**Base images:** build `node:24-slim@sha256:0e0ff40c…f9b6`; runtime `quay.io/meddleware-org/static-server:0.1.8@sha256:e32cf42b…4000` (source 0.1.8; the deployed 0.1.19 image still carries 0.1.7)
 **Runtime user:** 65534:65534 (`USER`, `runAsNonRoot`)   **Runtime FS:** read-only root, nothing writable mounted
 **Deployed by:** `k8s/base/apps/status` via the overlay `k8s/clusters/meddleware-org/apps` (digest from `config/images.yaml`)
 **Build args:** `VITE_API_BASE` (public, empty) and `CSP` (the response-header policy) — none secret
 **Deployment status:** image `quay.io/meddleware-org/status-page` (+ Docker Hub; best-effort signed push to the self-hosted registry, currently without credentials) serving `status.meddleware.co.uk` at 0.1.19 (deployed 2026-10-09; live headers and `/api/status` checked 2026-10-09; the snapshot lists Identity & Access, Container Registry and Chain Access → Chain index, all operational)
-**Review date:** 2026-09-19 (first pass) · re-verified 2026-10-03 · re-verified 2026-10-09
+**Review date:** 2026-09-19 (first pass) · re-verified 2026-10-03 · re-verified 2026-10-09 · fix wave 2026-10-18 (0.1.20, not yet deployed)
 **Reviewer:** Internal review
 **Severity ceiling:** Low — no backend, accounts, secrets or writes; the worst case is misleading status text from a compromised probe.
-**Status:** re-verified 2026-10-09 — 21 findings (8 Positive): 7 RESOLVED, 1 MITIGATED, 1 ADJUDICATED, 2 ACCEPTED-RISK, 2 DEFERRED
+**Status:** fix wave 2026-10-18 (0.1.20) — 21 findings (8 Positive): 10 RESOLVED, 1 ADJUDICATED, 2 DEFERRED (both maintainer-only)
 
 ---
 
@@ -44,18 +44,29 @@ live headers and the live snapshot, and applied the container-image lens:
   `/THIRD_PARTY_LICENSES` is served.
 - **F14 (Info, RESOLVED 0.1.18, `c3ae276`)** — static-server 0.1.7 (Go 1.26.9) base and an explicit
   `USER 65534:65534`.
-- **F15 (Low, ACCEPTED-RISK)** — the vitest suite (the render-escaping test) is not run by
-  `node-ci.yml`, so neither CI nor the release executes it; it passes locally (2/2).
-- **F16–F17 (Info)** — no container probe in CI (ACCEPTED-RISK); the snapshot size is not bounded
-  before parsing (ADJUDICATED).
+- **F15 (Low, ACCEPTED-RISK at the time; RESOLVED 2026-10-18)** — the vitest suite (the render-escaping
+  test) was not run by `node-ci.yml`, so neither CI nor the release executed it.
+- **F16–F17 (Info)** — no container probe in CI (ACCEPTED-RISK at the time; RESOLVED 2026-10-18); the
+  snapshot size is not bounded before parsing (ADJUDICATED).
 - **F18 (Low, DEFERRED)** — registry pushes use long-lived tokens (`OPERATOR_TASKS.md` "Image
   registry credentials").
 - **F20 (Info, DEFERRED)** — the best-effort self-hosted mirror job signs its image but does not
   scan it or attach an SBOM attestation, and fails without credentials (maintainer item).
-- **F21 (Low, MITIGATED)** — no build-time check that the bundle emits no inline script; the build
-  emits none today and `script-src` has no `'unsafe-inline'`, so a future one would fail closed.
+- **F21 (Low, MITIGATED at the time; RESOLVED 2026-10-18)** — no build-time check that the bundle emits
+  no inline script; the build emitted none and `script-src` has no `'unsafe-inline'`, so a future one
+  would have failed closed in the browser only.
 - **F19 (Positive)** — the new Chain Access → Chain index check needs no page change; the check
   definitions stay in the SOPS-encrypted `status-checks` Secret that `platform-probe` mounts.
+
+The 2026-10-18 fix wave (0.1.20, not yet released) closed the three code findings:
+
+- **F15 (RESOLVED)** — `npm test` runs in `node-ci.yml` (commit `19860cf`), and the release reaches it
+  through `verify`. **F16 (RESOLVED)** — a CI job builds the image and probes the running container
+  with `scripts/smoke.sh`. **F21 (RESOLVED)** — `scripts/check-csp-inline.mjs` fails the image build and
+  CI on an inline script the CSP does not allow.
+- Dependencies: design-tokens ^0.1.10 (ui 0.1.31 is already the latest), image base static-server 0.1.8.
+  platform-probe 0.1.7's default (a check without `expect_status` is operational only for a 2xx) changes
+  the verdict the probe computes, not the snapshot shape: the page parses the same four levels (F19).
 
 No High or Critical; the severity ceiling is unchanged.
 
@@ -78,16 +89,17 @@ Critical / High / Medium / Low / Info / Positive.
 
 ## Scope
 
-- **In scope (0.1.19):** `src/**` (`config.ts`, `composables/useStatus.ts`, `StatusBanner`,
+- **In scope (0.1.20):** `src/**` (`config.ts`, `composables/useStatus.ts`, `StatusBanner`,
   `StatusGroup`, `StatusDot`, `App.vue`, `main.ts`), `index.html`, `Dockerfile`, `.dockerignore`,
-  workflows, `scripts/third-party-licenses.mjs`, `SECURITY.md`, and the deployment in
+  workflows, `scripts/third-party-licenses.mjs`, `scripts/check-csp-inline.mjs`, `scripts/smoke.sh`, `SECURITY.md`, and the deployment in
   `k8s/base/apps/status` plus the overlay (read-only).
 - **Out of scope:** `platform-probe` and `@meddleware/ui` (own audits; `parseSnapshot` is ui's), the
   contents of the `status-checks` Secret.
-- **Environment (2026-10-09, re-run 2026-10-10):** `npm test` 2/2 (vitest 5.0.3; run locally only, F15); `vue-tsc`; stylelint, eslint,
+- **Environment (2026-10-09, re-run 2026-10-18):** `npm test` 8/8 (vitest 5.0.3; also in CI, F15); `vue-tsc`; stylelint, eslint,
   html-validate; production build; Trivy filesystem scan (vuln, misconfig, secret) in CI; audit gate
   (1 allowlisted dev-tooling advisory, 0 open; `npm audit --omit=dev` 0 vulnerabilities);
-  `npm run check:licenses` (26 production packages, all with a licence file). Live: `curl -I` of
+  `npm run check:licenses` (26 production packages, all with a licence file); `npm run check:csp`;
+  `scripts/smoke.sh` against the image built with rootless podman (2026-10-18). Live: `curl -I` of
   `status.meddleware.co.uk/`, `/api/status` and `/THIRD_PARTY_LICENSES`; repository variables,
   secrets (names) and recent runs read with `gh`.
 
@@ -215,32 +227,40 @@ the `status-page:0.1.3` tag in the base Deployment is only the readable default 
 
 ### F15 — The vitest suite is not run by CI or the release
 
-**Severity:** Low   **Disposition:** ACCEPTED-RISK
+**Severity:** Low   **Disposition:** RESOLVED (0.1.20, commit pending)
 **Where:** `.github/workflows/node-ci.yml`
-**Issue:** `node-ci.yml` has no `npm test` step, so neither CI nor the release (which calls it, F13)
+**Issue:** `node-ci.yml` had no `npm test` step, so neither CI nor the release (which calls it, F13)
 executes `tests/render-escaping.test.ts`. The TS lens (Section C) calls a test project that CI never
 runs a GAP. The suite passes locally (2/2, vitest 5.0.3, 2026-10-10).
 **Impact:** a regression in how `StatusGroup` renders names (invariant I2) would not fail a pull
 request or a tag; the lint rules in use do not forbid `v-html`.
-**Remediation / evidence:** accepted for a display-only page with Low ceiling: today no template uses
-`v-html`, `innerHTML`, `eval` or a URL sink (grep of `src/`, 2026-10-10), `parseSnapshot` (the
-validation gate, tested in ui's CI) normalises every status and name before they reach a component,
-and the CSP blocks inline script. Adding `npm test` to `node-ci.yml` is one line and is the first
-implementation suggestion; it closes this.
+**Remediation / evidence:** commit `19860cf` added the "Unit tests" step (`npm test`) to the
+`type-check` job of `node-ci.yml`, verified 2026-10-18; the release calls `node-ci.yml` through the
+`verify` job of `docker-publish.yml` (F13), so a tag runs the suite too (there is no `npm-publish.yml`:
+the package is `private`, image only). The suite is `tests/render-escaping.test.ts` (2) and
+`tests/check-csp-inline.test.ts` (6), 8/8. Before: no template used `v-html`, `innerHTML`, `eval` or a
+URL sink (grep of `src/`, 2026-10-10), `parseSnapshot` normalises every status and name, and the CSP
+blocks inline script.
 
 ### F16 — No container probe of the built image in CI
 
-**Severity:** Info   **Disposition:** ACCEPTED-RISK
+**Severity:** Info   **Disposition:** RESOLVED (0.1.20, commit pending)
 **Where:** `.github/workflows/`
 **Issue:** the IMG lens (Section C) asks CI to probe the running container: health, served headers
-and non-root execution. Neither workflow starts the image. The Dockerfile is covered by the Trivy
+and non-root execution. Neither workflow started the image. The Dockerfile is covered by the Trivy
 filesystem scan (`misconfig` scanner) in `node-ci.yml`; the manifests live in the workspace, not this
 repository.
 **Impact:** a regression in the served headers or in the user would be found at deployment or in a
 manual sweep, not at the pull request.
-**Remediation / evidence:** accepted: the image adds no code to static-server, the headers and the
-non-root pod were checked by hand on 2026-10-09/10 (Section A, B.VUE-1, F14) and the signed digest is
-re-verified by `verify-digests.sh`. A header-probe job is in the implementation suggestions.
+**Remediation / evidence:** the `image` job of `node-ci.yml` builds the Dockerfile (not pushed) and
+runs `scripts/smoke.sh` (adapted from static-server's): the image user is `65534:65534`; the container
+runs read-only with no capabilities and `no-new-privileges`; the in-image `-healthcheck` succeeds; `/`
+is 200 with the SPA shell, `Cache-Control: no-cache` and nosniff, X-Frame-Options, Referrer-Policy,
+HSTS, Permissions-Policy and the CSP (`script-src 'self'` plus nonce, `connect-src 'self'`,
+`frame-ancestors 'self'`, no inline-script allowance); the bundle is served with an immutable
+`Cache-Control`; `/THIRD_PARTY_LICENSES` is served; an unknown route returns the shell; a missing
+`/assets/` file is a 404 without `Cache-Control`; `/.env` is 404; `POST /` is 405. Ran green locally
+with rootless podman against static-server 0.1.8 on 2026-10-18. The release runs it through `verify`.
 
 ### F17 — Snapshot size not bounded before parsing
 
@@ -253,7 +273,8 @@ the whole body, and the fetch has a 10 s timeout but no size cap.
 service the page already trusts for the verdict itself, CSP `connect-src 'self'`), the live snapshot is
 about 500 bytes (`content-length: 516`, 2026-10-10), and the worst case is a slow tab, not an escalation.
 The shape and types of every field are checked by `parseSnapshot` (F1). The cap would belong to the
-probe's response contract.
+probe's response contract. Re-checked 2026-10-18: unchanged, no single page-side fix (a streamed read
+with a byte cap would duplicate a limit the probe's contract should own), so it stays ADJUDICATED.
 
 ### F18 — Registry pushes use long-lived tokens
 
@@ -278,7 +299,10 @@ workflow and tag refs is in the implementation suggestions.
 **Severity:** Positive — the "Chain Access → Chain index" check (`sui-indexer` `/healthz`, 200 and
 `"ok":true`) was added to the `status-checks` Secret on 2026-10-09 and the live snapshot lists it
 operational (`curl /api/status`, 2026-10-10: Identity & Access, Container Registry and Chain Access,
-each operational). The page rendered it unchanged: groups and components are data, the page holds no
+each operational). Re-checked 2026-10-18 against platform-probe 0.1.7, whose default makes a check
+without `expect_status` operational only for a 2xx: it changes which verdict the probe computes, not
+the snapshot shape, and `parseSnapshot` and the fixtures (the four levels `operational`, `degraded`,
+`down`, `unknown`) are unaffected; no page change. The page rendered it unchanged: groups and components are data, the page holds no
 check list and shows names, never URLs. The Secret is SOPS-encrypted (age) and mounted by
 `platform-probe`, not by this image (B.2).
 
@@ -300,18 +324,22 @@ listed as best-effort in B.2.
 
 ### F21 — No build-time check for inline scripts
 
-**Severity:** Low   **Disposition:** MITIGATED
+**Severity:** Low   **Disposition:** RESOLVED (0.1.20, commit pending)
 **Where:** `.github/workflows/node-ci.yml`, `Dockerfile`
 **Issue:** B.VUE-1 asks for a build-time check that fails when the build emits an inline script not
-covered by the CSP. There is none. Today the build emits none: `dist/index.html` carries one
+covered by the CSP. There was none. Then the build emits none: `dist/index.html` carries one
 `<script type="module" src="/assets/…js">` and no inline script (checked 2026-10-10); the only inline
 script on the live page is Cloudflare's, injected at the edge and covered by the response nonce.
 **Impact:** a future dependency or plugin that injected an inline script would be blocked by the
 browser rather than caught in CI.
-**Remediation / evidence:** compensating control: `script-src 'self'` plus the nonce, no
-`'unsafe-inline'` (live header 2026-10-10), so an uncovered inline script is refused at runtime and the
-page fails visibly. A CI step that fails on an inline `<script>` without `src` in `dist/index.html` is
-in the implementation suggestions.
+**Remediation / evidence:** `scripts/check-csp-inline.mjs` (the pattern of `docs`/`dev`) scans every
+HTML file in `dist/` and fails on an inline `<script>` whose sha256 is not in the CSP's `script-src`
+(none are listed), and on a `script-src` that allows `'unsafe-inline'`. It runs in the Dockerfile build
+stage against the `CSP` build argument, so the release image cannot be built with one, and in CI
+(`npm run check:csp`, reading the Dockerfile's CSP default). Pinned by `tests/check-csp-inline.test.ts`
+(external module passes, inline fails, hashed inline passes, `'unsafe-inline'` fails, empty dist
+fails, Dockerfile CSP read). The compensating control stays: `script-src 'self'` plus the nonce, no
+`'unsafe-inline'` (live header 2026-10-10).
 
 ## Section A — Invariant verification matrix
 
@@ -335,7 +363,7 @@ in the implementation suggestions.
 | TS | Money, encoding, secrets in output, dynamic code, caller-keyed lookups | N/A or HOLDS — no amounts, no base64, no logging, no `eval`/`new Function`/dynamic `import()`, label maps keyed by the parsed `StatusLevel` union |
 | TS | Supply chain | HOLDS — `npm ci`, audit gate (F3), Trivy, lockfile; no lifecycle scripts of its own (B.TS-2) |
 | TS | Publishing | HOLDS — `private: true`; image only |
-| TS | Test coverage in CI | GAP accepted — the vitest suite is not run by CI (F15) |
+| TS | Test coverage in CI | HOLDS — `npm test` (8 tests) runs in `node-ci.yml` and so in the release (F15) |
 | VUE | Untrusted rendering | HOLDS (I2, F5) — no URL sink, no `v-html` |
 | VUE | Colour & links | Covered upstream — every colour is a design-token variable (CLAUDE.md invariant 4); contrast per theme × season is gated in design-tokens/ui, and this repository runs no axe sweep of its own; no running-text links |
 | VUE | Build-time configuration | HOLDS (I4) — `VITE_API_BASE` is documented in the Dockerfile, README and `.env.example` and its default matches (empty); not a secret |
@@ -343,8 +371,8 @@ in the implementation suggestions.
 | VUE | Browser storage | none of its own (no `localStorage`/`sessionStorage` in `src/`); colour mode through ui |
 | VUE | Estimates | N/A — the "Updated hh:mm:ss" label formats the probe's timestamp; no client-computed values |
 | VUE | Chain-access layering | N/A — no chain code |
-| VUE | Hosting headers (B.VUE-1) | HOLDS — live headers below; inline-script build check absent (F21) |
-| IMG | Base images, build context | HOLDS — `node:24-slim` and static-server 0.1.7 digest-pinned; the runtime stage is the first-party static-server; `.dockerignore` excludes `node_modules`, `dist`, `.git`, `.env*.local` |
+| VUE | Hosting headers (B.VUE-1) | HOLDS — live headers below; inline-script build check in the image build and CI (F21) |
+| IMG | Base images, build context | HOLDS — `node:24-slim` and static-server 0.1.8 digest-pinned; the runtime stage is the first-party static-server; `.dockerignore` excludes `node_modules`, `dist`, `.git`, `.env*.local` |
 | IMG | Reproducible build, no secrets in layers | HOLDS — `npm ci`; build args are `VITE_API_BASE` (empty) and `CSP`, none secret; only `dist`, the lockfile and licence notices reach the runtime stage |
 | IMG | Runtime user & filesystem | HOLDS — `USER 65534:65534`; pod `runAsNonRoot`, read-only root, no escalation, capabilities dropped, `RuntimeDefault` seccomp, `automountServiceAccountToken: false` (F14) |
 | IMG | Runtime configuration | HOLDS — `SERVE_DIR`, `SPA_FALLBACK`, `CACHE_IMMUTABLE_PREFIX` (manifest and image), `CONTENT_SECURITY_POLICY` (image; owner lens VUE B.VUE-1) |
@@ -353,7 +381,7 @@ in the implementation suggestions.
 | IMG | Scan before sign | HOLDS on the public path (Trivy, then cosign); the mirror job has none (F20) |
 | IMG | Verification command | HOLDS with a note — pins issuer and repository, not the workflow file or tag ref (F18) |
 | IMG | Deployment pinning | HOLDS — digest from `config/images.yaml` in the overlay |
-| IMG | Container probe, inline-script build check | GAPS accepted/mitigated (F16, F21) |
+| IMG | Container probe, inline-script build check | HOLDS — `scripts/smoke.sh` in CI; `check-csp-inline.mjs` in the build (F16, F21) |
 
 ## Section B — Supply-chain, publish-authority & capability matrix
 
@@ -362,13 +390,13 @@ in the implementation suggestions.
 | Dependency | Pinned version | Liveness dependency? | CVE / audit status | Notes |
 | --- | --- | --- | --- | --- |
 | `@meddleware/ui` | `^0.1.31` (0.1.31) | `parseSnapshot`, components | clean | latest |
-| `@meddleware/design-tokens` | `^0.1.9` (0.1.9) | CSS | clean | latest |
+| `@meddleware/design-tokens` | `^0.1.10` (0.1.10) | CSS | clean | latest |
 | `vue` | `^3.5.43` | rendering | clean | |
 | `vite` / `@vitejs/plugin-vue` | `^8.3.3` / `^6.0.9` | build | clean | |
 | `typescript` / `vitest` | `^6.0.0` (6.0.3) / `~5.0.3` | build, test | clean | TypeScript 7 deferred (decision); vitest 5 is the workspace line |
 | dev tooling | lockfile | no | GHSA-vfj7-8cjw-p6xm allowlisted to 2027-01-01; `npm audit --omit=dev`: 0 | TS lens B.TS-3 |
 | `node:24-slim` (build) | `@sha256:0e0ff40c…f9b6` | no | Trivy filesystem scan in CI; image scan at release (F13) | Node 24 LTS only |
-| `static-server` (runtime) | `0.1.7@sha256:2e227311…2379` | serves the page | Go 1.26.9; Trivy image scan at release | first-party |
+| `static-server` (runtime) | `0.1.8@sha256:e32cf42b…4000` | serves the page | Trivy image scan at release | first-party |
 
 Shared-dependency matrix (TS lens B.1): the project uses none of the `@mysten/*` packages that
 ADR-0001 baselines; `vue` ^3.5.43, `typescript` ^6.0.0 and `vitest` ~5.0.3 are in line with the other
@@ -398,7 +426,7 @@ on 2026-10-10 (0.1.19):
 `/api/status` is served by `platform-probe`, not this image: `Content-Security-Policy: default-src
 'none'; frame-ancestors 'none'`, `Cache-Control: no-store`, `nosniff`, `Access-Control-Allow-Origin: *`
 (public, read-only; the other sites' status widget reads it). The build-time inline-script check is
-absent (F21).
+in the image build and CI (F21).
 
 ### B.VUE-2 Build inputs and artifacts
 
@@ -428,28 +456,29 @@ verify` pins the issuer and the repository identity (F18).
 
 ## Section C — Test-coverage & hermetic/live split
 
-### C.1 Coverage grade — C (2/2, re-run 2026-10-10)
+### C.1 Coverage grade — C (8/8, re-run 2026-10-18)
 
 The render-escaping test mounts `StatusGroup` with HTML in names and asserts it renders as text, and
 that an unknown status renders an empty label; `parseSnapshot` itself is tested in ui. Polling has no
-unit test (a mocked-`fetch` test would cover the timeout, non-OK and malformed-body paths). The suite
-runs locally only: CI does not execute it (F15). Quality gates in CI: `vue-tsc`, stylelint, eslint
-(vue-a11y), html-validate, the production build, the licence check and the Trivy filesystem scan; the
+unit test (a mocked-`fetch` test would cover the timeout, non-OK and malformed-body paths). Six more
+tests pin the inline-script build check (F21). The suite runs in CI and in the release (F15), and the
+built image is probed in CI (F16). Quality gates in CI: `vue-tsc`, stylelint, eslint
+(vue-a11y), html-validate, the production build, the licence check, the inline-script check and the Trivy filesystem scan; the
 linters and html-validate are quality gates, not security evidence.
 
 ### C.2 Hermetic vs. live paths
 
 | Path | Hermetic? | Deferred to | Tracking |
 | --- | --- | --- | --- |
-| Rendering and parsing | yes | — | `npm test` (local); ui tests (CI) |
+| Rendering and parsing | yes | — | `npm test` (CI and release); ui tests (CI) |
 | Polling against the real probe | no | live sweep | Phase 7 Chromium sweep; live `/api/status` and `/` headers read with `curl` on 2026-10-10 |
-| Built image: served headers, `/THIRD_PARTY_LICENSES`, non-root pod | no | live deployment | manual `curl -I` 2026-10-10; `bootstrap/images/verify-digests.sh` (16/16 valid 2026-10-09); F16 |
+| Built image: served headers, `/THIRD_PARTY_LICENSES`, non-root pod | no | live deployment | manual `curl -I` 2026-10-10; `bootstrap/images/verify-digests.sh` (16/16 valid 2026-10-09); `scripts/smoke.sh` in CI (F16) |
 
 ## Section D — Deployment-readiness gates
 
 ### pre-localnet
 
-- [x] builds; type-check, three linters, tests green; no secrets — `vue-tsc`, linters and build in CI; `npm test` 2/2 locally (F15)
+- [x] builds; type-check, three linters, tests green; no secrets — `vue-tsc`, linters and build in CI; `npm test` 8/8 in CI (F15)
 - [x] no `v-html`; no dynamic href/src; no secret `VITE_*` value; `VITE_*` inventory matches `.env.example` (F5, F8)
 - [x] every `FROM` digest-pinned; `.dockerignore` excludes local env files and installs; lockfile installs (`npm ci`); no secret in `ARG`/`ENV`/`COPY`/`RUN`
 - [x] strict type-check; untrusted parser validates every field (F1); no swallowed promises on security paths
@@ -462,8 +491,8 @@ linters and html-validate are quality gates, not security evidence.
 - [x] audit gate in CI and in the release (via `node-ci.yml`); no install-time code (B.TS-2); nothing to `npm pack` (`private: true`)
 - [x] test-mode guards: none needed — no test mode exists (B.VUE-2)
 - [x] release gate equals CI for the image (F13)
-- [ ] every test project runs in CI — accepted gap, vitest suite not in `node-ci.yml` (F15)
-- [ ] container probe in CI — accepted gap (F16); inline-script build check — mitigated, not implemented (F21)
+- [x] every test project runs in CI — `npm test` in `node-ci.yml` (`19860cf`), reached by the release through `verify` (F15)
+- [x] container probe in CI — the `image` job runs `scripts/smoke.sh` (F16); inline-script build check — `scripts/check-csp-inline.mjs` in the Dockerfile and CI (F21); 0.1.20, commit pending
 
 ### pre-mainnet
 
@@ -489,14 +518,13 @@ linters and html-validate are quality gates, not security evidence.
   no secrets, non-root restricted pod, deploy by digest, signature with SBOM and provenance, scan
   before sign, licence notices, verification command); the self-hosted mirror is best-effort and does
   not meet M7/M8 (F20); the verification command pins the repository, not the workflow (F18).
-- **TS-M1–TS-M8 exceptions** — the suite is not run in CI (F15); no size cap before parsing (F17).
+- **TS-M1–TS-M8 exceptions** — no size cap before parsing (F17).
 
 ## Implementation suggestions (SHOULD / MAY)
 
-- SHOULD add `npm test` to `node-ci.yml`, so CI and the release run the render-escaping test (F15).
 - MAY add a `useStatus` test with a mocked `fetch` (timeout, non-OK, malformed body).
-- MAY add a CI step that fails on an inline `<script>` without `src` in `dist/index.html` (F21), and a
-  job that runs the built image and probes `/`, the headers and the user (F16).
+- (Done 0.1.20) `npm test` in `node-ci.yml` (F15); the inline-script build check (F21); the container
+  probe job (F16).
 - MAY narrow the documented `cosign verify` identity to the publish workflow and tag refs, e.g.
   `--certificate-identity-regexp '^https://github.com/meddleware-org/status-page/\.github/workflows/docker-publish\.yml@refs/tags/v.*$'`
   (F18).
@@ -538,3 +566,10 @@ linters and html-validate are quality gates, not security evidence.
   `status-checks` Secret row to B.2, and ticked Section D with evidence. Stale facts corrected
   (static-server 0.1.3 to 0.1.7, ui 0.1.31, design-tokens 0.1.9). PLATFORM lens not triggered: the Secret
   is the platform's and is mounted by `platform-probe`.
+- 2026-10-18 — fix wave (0.1.20, commit pending): design-tokens ^0.1.10, static-server 0.1.8
+  (`sha256:e32cf42b…4000`, verified against the quay.io tag API). platform-probe 0.1.7's default-2xx
+  rule needs no page change (snapshot shape unchanged; F19). F15 RESOLVED (`npm test` in CI since
+  `19860cf`, release via `verify`), F16 RESOLVED (`scripts/smoke.sh` + `image` CI job, run green with
+  rootless podman), F21 RESOLVED (`scripts/check-csp-inline.mjs` in the Dockerfile and CI, 6 tests).
+  F17 re-checked (stays ADJUDICATED), F18 and F20 left (maintainer). Counts: 8/8 tests; 10 RESOLVED,
+  1 ADJUDICATED, 2 DEFERRED. Section D: the two code gates ticked; the two maintainer gates stay open.
