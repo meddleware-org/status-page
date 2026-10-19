@@ -13,7 +13,7 @@
 **Runtime user:** 65534:65534 (`USER`, `runAsNonRoot`)   **Runtime FS:** read-only root, nothing writable mounted
 **Deployed by:** `k8s/base/apps/status` via the overlay `k8s/clusters/meddleware-org/apps` (digest from `config/images.yaml`)
 **Build args:** `VITE_API_BASE` (public, empty) and `CSP` (the response-header policy) — none secret
-**Deployment status:** image `quay.io/meddleware-org/status-page` (+ Docker Hub; best-effort signed push to the self-hosted registry, currently without credentials) serving `status.meddleware.co.uk` at 0.1.20 (`sha256:8ec62b1b…f115`; release tag `v0.1.20` = `fe94a6f`; released, signature verified and deployed 2026-10-18, rollout succeeded; 0.1.19 was deployed 2026-10-09; live headers and `/api/status` re-checked 2026-10-18; the snapshot lists Identity & Access, Container Registry and Chain Access → Chain index, all operational)
+**Deployment status:** image `quay.io/meddleware-org/status-page` (+ Docker Hub; best-effort digest-preserving copy to the self-hosted registry, currently without credentials) serving `status.meddleware.co.uk` at 0.1.20 (`sha256:8ec62b1b…f115`; release tag `v0.1.20` = `fe94a6f`; released, signature verified and deployed 2026-10-18, rollout succeeded; 0.1.19 was deployed 2026-10-09; live headers and `/api/status` re-checked 2026-10-18; the snapshot lists Identity & Access, Container Registry and Chain Access → Chain index, all operational)
 **Review date:** 2026-09-19 (first pass) · re-verified 2026-10-03 · re-verified 2026-10-09 · fix wave 2026-10-18 (0.1.20, released and deployed 2026-10-18)
 **Reviewer:** Internal review
 **Severity ceiling:** Low — no backend, accounts, secrets or writes; the worst case is misleading status text from a compromised probe.
@@ -310,9 +310,9 @@ check list and shows names, never URLs. The Secret is SOPS-encrypted (age) and m
 
 **Severity:** Info   **Disposition:** DEFERRED (maintainer: the private-registry mirror job fails
 without `PRIVATE_REGISTRY_*` credentials; `OPERATOR_TASKS.md` "Image registry credentials")
-**Where:** `.github/workflows/docker-publish.yml`, job `publish-private`
-**Issue:** the best-effort mirror job (`continue-on-error`) builds and pushes with BuildKit
-provenance and keyless-signs the image, but runs no Trivy scan before signing, attaches no SBOM
+**Where:** `.github/workflows/docker-publish.yml`, job `mirror-private` (it was `publish-private`, a rebuild; since 2026-10-19 it copies the published image by digest, so the scan, SBOM and provenance of `publish-public` travel with it)
+**Issue:** (as found) the best-effort mirror job (`continue-on-error`) built and pushed with BuildKit
+provenance and keyless-signed the image, but ran no Trivy scan before signing, attached no SBOM
 attestation and no `attest-build-provenance`. `PRIVATE_REGISTRY_USERNAME`/`_TOKEN` are not set
 (`gh secret list`, 2026-10-10), so the job fails at login and publishes nothing today.
 **Impact:** none now (nothing is pushed, nothing deploys from the mirror: the cluster uses
@@ -320,7 +320,7 @@ attestation and no `attest-build-provenance`. `PRIVATE_REGISTRY_USERNAME`/`_TOKE
 attestations of the public path (IMG-M7, IMG-M8).
 **Remediation / evidence:** when the maintainer restores or retires the mirror, the job either gains
 the scan, SBOM attestation and provenance steps of `publish-public` or is removed; until then it is
-listed as best-effort in B.2.
+listed as best-effort in B.2. Addressed in the workflow (local, unreleased): the job no longer rebuilds.
 
 ### F21 — No build-time check for inline scripts
 
@@ -439,8 +439,7 @@ switch (there is no test mode). `.dockerignore` keeps `.env*.local` out of the c
 Public path (`publish-public`): multi-arch build (amd64, arm64) with BuildKit provenance (`mode=max`),
 Trivy, keyless cosign signature, SPDX SBOM attested with cosign, and GitHub build-provenance
 attestations, on quay.io and Docker Hub, none with `continue-on-error`; signed at the index digest.
-The self-hosted registry mirror is best-effort (`continue-on-error`), signed but not scanned or
-attested, and currently fails for lack of credentials (F20). Verification: the README's `cosign
+The self-hosted registry mirror is best-effort (`continue-on-error`), a digest-preserving copy of the published image (so it carries the same signature, SBOM and provenance; no rebuild), and currently fails for lack of credentials (F20). Verification: the README's `cosign
 verify` pins the issuer and the repository identity (F18); the cluster check `verify-digests.sh` pins the publish workflow and tag refs since 2026-10-18.
 
 ### B.2 Publish authority, capabilities & secret custody
@@ -578,3 +577,4 @@ linters and html-validate are quality gates, not security evidence.
 - 2026-10-19 — dependency-bot status checked (read-only): `.github/dependabot.yml` carries the `ignore` rules and the repository has no open Dependabot pull requests (`gh pr list`, 2026-10-19). Versions, findings and gates were not re-examined in this pass.
   - `Dockerfile` on GitHub `main` now pins the `static-server` base at `0.1.9@sha256:af6cc284…edc72` (merged Dependabot docker PR); this repo was not re-released or redeployed for it, so the deployed image is still built on the 0.1.8 base (the stock default CSP added in 0.1.9 is replaced by this repo's own `CONTENT_SECURITY_POLICY`).
   - Dependabot policy encoded in .github/dependabot.yml (majors declined); open PRs merged 2026-10-19
+  - `docker-publish.yml`: the private rebuild jobs are replaced by one `mirror-private` job that copies the published quay.io image (and its cosign artifacts) to the self-hosted registry by digest and fails unless the digest and the signature match (build once, promote by digest; committed locally, not yet released; the `PRIVATE_REGISTRY_*` credentials are still unset).

@@ -40,9 +40,9 @@ CSP: browsers enforce every policy, and an edge can add its nonce only to the he
 
 All published images are cosign keyless-signed (Sigstore Fulcio/Rekor via GitHub Actions OIDC) with
 build provenance — the public `quay.io` / Docker Hub images **and** the self-hosted
-`registry.meddleware.co.uk` image (the private registry is CNCF `distribution` v3, which stores the
-cosign `.sig` OCI artifact). The private-registry push remains `continue-on-error` (best-effort
-secondary), but it is now signed rather than unsigned.
+`registry.meddleware.co.uk` image, which is the published image copied by digest (the same
+manifest and the same signature artifacts, never a rebuild). The private-registry copy remains
+`continue-on-error` (best-effort secondary).
 
 ## Supported versions
 
