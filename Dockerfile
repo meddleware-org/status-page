@@ -6,7 +6,9 @@
 # fails the build if one appears).
 ARG CSP="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'self'; upgrade-insecure-requests"
 
-FROM node:26-slim@sha256:0d1e33586362bb9e608c4e751e7a9e7edb55c9ac11461ed5666af696cc461dd4 AS build
+# The build stage runs on the BUILD host's architecture: its output (static files) is architecture-independent,
+# so no arm64 step runs under emulation. The final stage only COPYs into the multi-arch static-server image.
+FROM --platform=$BUILDPLATFORM node:26-slim@sha256:0d1e33586362bb9e608c4e751e7a9e7edb55c9ac11461ed5666af696cc461dd4 AS build
 
 WORKDIR /app
 

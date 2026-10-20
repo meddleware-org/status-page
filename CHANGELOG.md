@@ -5,6 +5,22 @@ All notable changes to status-page are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.21] - 2026-10-20
+
+### Changed
+
+- **Image build: native, no QEMU.** The build stage is `FROM --platform=$BUILDPLATFORM node:…-slim`: the
+  output is architecture-independent static files, so the release no longer emulates arm64 and
+  `docker-publish.yml` no longer has the `docker/setup-qemu-action` step (a privileged binfmt step). The
+  runtime stage still starts from the multi-arch static-server image and only receives `COPY`.
+  Proof (rootless podman): the 0.1.20 sources with only this Dockerfile change give a served tree (`/app/public`, the lockfile and `THIRD_PARTY_LICENSES`) with the same
+  SHA-256 as the published 0.1.20 image (`sha256:8ec62b1b…`), for every file of the amd64 image,
+  and for every file the build stage produces in the arm64 image (the static-server binary comes from the base
+  image, which rootless podman 4.9 resolves to the host architecture for the final stage; BuildKit does not).
+  No file differs.
+- Also ships what merged since 0.1.20: the Node 26 build baseline (`node:26-slim`, `@types/node`), the
+  static-server 0.1.9 base image, and the dependency updates in `package-lock.json`.
+
 ## [0.1.20] - 2026-10-18
 
 ### Added
