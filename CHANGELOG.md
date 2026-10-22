@@ -5,6 +5,12 @@ All notable changes to status-page are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.22] - 2026-10-22
+
+### Changed
+
+- Image base: static-server 0.1.11 (Go 1.26.10 standard library, CVE-2026-111943, so the scan-before-sign gate passes)
+
 ## [0.1.21] - 2026-10-20
 
 ### Changed
