@@ -50,8 +50,8 @@ live headers and the live snapshot, and applied the container-image lens:
   snapshot size is not bounded before parsing (ADJUDICATED).
 - **F18 (Low, DEFERRED)** — registry pushes use long-lived tokens (`OPERATOR_TASKS.md` "Image
   registry credentials").
-- **F20 (Info, DEFERRED)** — the best-effort self-hosted mirror job signs its image but does not
-  scan it or attach an SBOM attestation, and fails without credentials (maintainer item).
+- **F20 (Info, DEFERRED)** — the best-effort self-hosted mirror job used to rebuild and sign without a scan or SBOM; since 2026-10-19 `mirror-private`
+  copies the published image by digest (so the scan, SBOM and provenance travel with it) and the design question is settled. Only the `PRIVATE_REGISTRY_*` credentials remain, a maintainer item; the job has never run to completion.
 - **F21 (Low, MITIGATED at the time; RESOLVED 2026-10-18)** — no build-time check that the bundle emits
   no inline script; the build emitted none and `script-src` has no `'unsafe-inline'`, so a future one
   would have failed closed in the browser only.
@@ -311,6 +311,7 @@ check list and shows names, never URLs. The Secret is SOPS-encrypted (age) and m
 **Severity:** Info   **Disposition:** DEFERRED (maintainer: the private-registry mirror job fails
 without `PRIVATE_REGISTRY_*` credentials; `OPERATOR_TASKS.md` "Image registry credentials")
 **Where:** `.github/workflows/docker-publish.yml`, job `mirror-private` (it was `publish-private`, a rebuild; since 2026-10-19 it copies the published image by digest, so the scan, SBOM and provenance of `publish-public` travel with it)
+**Update 2026-10-22:** since 2026-10-19 the job (`mirror-private`) no longer rebuilds: it copies the published quay.io image by digest, with its cosign artifacts, and fails unless the digest and signature match, so the scan, SBOM attestation and provenance of `publish-public` travel with the image. What remains is the credentials (`PRIVATE_REGISTRY_USERNAME`/`_TOKEN`, a maintainer item); the disposition stays DEFERRED until the job has run once for real.
 **Issue:** (as found) the best-effort mirror job (`continue-on-error`) built and pushed with BuildKit
 provenance and keyless-signed the image, but ran no Trivy scan before signing, attached no SBOM
 attestation and no `attest-build-provenance`. `PRIVATE_REGISTRY_USERNAME`/`_TOKEN` are not set
@@ -379,7 +380,7 @@ fails, Dockerfile CSP read). The compensating control stays: `script-src 'self'`
 | IMG | Runtime configuration | HOLDS — `SERVE_DIR`, `SPA_FALLBACK`, `CACHE_IMMUTABLE_PREFIX` (manifest and image), `CONTENT_SECURITY_POLICY` (image; owner lens VUE B.VUE-1) |
 | IMG | Health & resources | HOLDS — probes on `/`; 5m/16Mi requests, 100m/32Mi limits |
 | IMG | SBOM & notices | HOLDS — lockfile in the image, SPDX SBOM attested; `/THIRD_PARTY_LICENSES` served (F13) |
-| IMG | Scan before sign | HOLDS on the public path (Trivy, then cosign); the mirror job has none (F20) |
+| IMG | Scan before sign | HOLDS on the public path (Trivy, then cosign); the mirror job copies that image by digest since 2026-10-19 (no scan of its own needed; F20: credentials only) |
 | IMG | Verification command | HOLDS with a note — the cluster check pins `docker-publish.yml@refs/tags/v` (since 2026-10-18); the README command still pins issuer and repository only, not the workflow file or tag ref (F18) |
 | IMG | Deployment pinning | HOLDS — digest from `config/images.yaml` in the overlay |
 | IMG | Container probe, inline-script build check | HOLDS — `scripts/smoke.sh` in CI; `check-csp-inline.mjs` in the build (F16, F21) |
@@ -501,7 +502,7 @@ linters and html-validate are quality gates, not security evidence.
 - [x] image scan clean at the release (Trivy, fixable CRITICAL/HIGH) and `npm audit --omit=dev` 0 on 2026-10-10
 - [x] every fetch has a timeout; no raw `btoa`/`atob`; no `any`/`as`/`!` at trust boundaries (Section A)
 - [ ] registry token scope and rotation recorded — maintainer-only (F18, `OPERATOR_TASKS.md` "Image registry credentials")
-- [ ] self-hosted mirror restored with scan and attestations, or retired — maintainer-only (F20)
+- [ ] self-hosted mirror restored with scan and attestations, or retired — maintainer-only (F20): by design settled 2026-10-19 (`mirror-private` copies the published image by digest, so scan, SBOM and provenance travel with it); only the `PRIVATE_REGISTRY_*` credentials remain
 
 ## Cross-project themes
 
@@ -516,8 +517,7 @@ linters and html-validate are quality gates, not security evidence.
   M9 are not applicable (no test mode, wallet, storage or library entry).
 - **IMG-M1–IMG-M8** — hold on the public path (digest-pinned bases, `.dockerignore`, lockfile install,
   no secrets, non-root restricted pod, deploy by digest, signature with SBOM and provenance, scan
-  before sign, licence notices, verification command); the self-hosted mirror is best-effort and does
-  not meet M7/M8 (F20); the README verification command pins the repository, not the workflow (F18; the cluster check is workflow-anchored since 2026-10-18).
+  before sign, licence notices, verification command); the self-hosted mirror is best-effort and, since 2026-10-19, a digest copy that carries the public path's scan, signature and attestations (M7/M8 hold once it has run; F20: credentials only); the README verification command pins the repository, not the workflow (F18; the cluster check is workflow-anchored since 2026-10-18).
 - **TS-M1–TS-M8 exceptions** — no size cap before parsing (F17).
 
 ## Implementation suggestions (SHOULD / MAY)
@@ -580,3 +580,5 @@ linters and html-validate are quality gates, not security evidence.
   - Dependabot policy encoded in .github/dependabot.yml (majors declined); open PRs merged 2026-10-19
   - `docker-publish.yml`: the private rebuild jobs are replaced by one `mirror-private` job that copies the published quay.io image (and its cosign artifacts) to the self-hosted registry by digest and fails unless the digest and the signature match (build once, promote by digest; committed locally, not yet released; the `PRIVATE_REGISTRY_*` credentials are still unset).
 - 2026-10-20 — image build moved off QEMU in 0.1.21 (commit 53243d7): the build stage is `FROM --platform=$BUILDPLATFORM` (its output is architecture-independent static files) and the runtime stage only `COPY`s into the multi-arch static-server image; `docker-publish.yml` has no `docker/setup-qemu-action` step, so no privileged binfmt step runs in the release. Proof with rootless podman: the 0.1.20 sources with only the Dockerfile change give the same SHA-256 for every served file, the lockfile and `THIRD_PARTY_LICENSES` as the published 0.1.20 image, for amd64 (the whole image) and for the former arm64 build (every file the build stage produces; the static-server binary comes from the base, which podman 4.9 resolves to the host architecture). Checks: `npm ci`, type-check, lint, unit tests, build, `check:licenses`, `check:csp`/audit gate. No finding changed.
+- 2026-10-22 (audit close-out) — release 0.1.22 (`v0.1.22` = `7a31cbf`; `Publish (Docker)` succeeded; 0.1.21 was the native-cross-compile build of 2026-10-20). Image base: static-server 0.1.11 (Go 1.26.10 standard library, CVE-2026-111943, so the scan-before-sign gate passes; static-server F13). No source change.
+  - Stale text fixed: the F20 summary line, the F20 finding, the B.2 IMG row, the supply-chain note and the Section D mirror box now say the mirror is a digest copy since 2026-10-19 and that only credentials remain (maintainer); F20 stays DEFERRED and the box stays unticked. Counts unchanged (10 RESOLVED, 1 ADJUDICATED, 2 DEFERRED, 8 Positive, as last counted).
