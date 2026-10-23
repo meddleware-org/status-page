@@ -1,6 +1,6 @@
 name: Node CI
 
-# Continuous integration gate for status-page. Runs on every push and PR.
+# Continuous integration gate for status-ui. Runs on every push and PR.
 # The publish workflow fires only on version tags; keeping this green before
 # tagging is the release gate.
 #
@@ -88,6 +88,6 @@ jobs:
       # Not pushed. Builds the Dockerfile as the release does (the inline-script check included) and runs the
       # container the way the cluster does: non-root user, read-only root, no capabilities.
       - name: Build (not pushed)
-        run: docker build --tag status-page:ci .
+        run: docker build --tag status-ui:ci .
       - name: Probe the container (user, /, headers, bundle, licences)
-        run: bash scripts/smoke.sh status-page:ci
+        run: bash scripts/smoke.sh status-ui:ci

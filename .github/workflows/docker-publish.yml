@@ -1,5 +1,5 @@
 name: Publish (Docker)
-# Release pipeline for status-page. Fires on version tags (v*).
+# Release pipeline for status-ui. Fires on version tags (v*).
 #
 # Supply-chain controls:
 #   - Multi-arch build (linux/amd64, linux/arm64) via Buildx: the build stage runs on the build host (static files are architecture-independent); no QEMU, no privileged binfmt step
@@ -22,7 +22,7 @@ on:
       - "v*"
 
 env:
-  IMAGE: status-page
+  IMAGE: status-ui
 
 permissions:
   contents: read

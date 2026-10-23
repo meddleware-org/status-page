@@ -1,4 +1,4 @@
-# AGENTS.md — status-page
+# AGENTS.md — status-ui
 
 ## Purpose
 
@@ -41,11 +41,11 @@ bash scripts/smoke.sh <image>   # probe a built image (CONTAINER_ENGINE=podman f
 
 ```bash
 # Build Docker image:
-docker build -t quay.io/meddleware-org/status-page:v0.1.0 .
+docker build -t quay.io/meddleware-org/status-ui:v0.1.0 .
 
 # With a non-default API base (dev/staging only):
 docker build --build-arg VITE_API_BASE=https://probe.example.com \
-  -t status-page:dev .
+  -t status-ui:dev .
 ```
 
 ## Invariants (see CLAUDE.md)

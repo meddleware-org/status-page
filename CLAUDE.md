@@ -1,4 +1,4 @@
-# CLAUDE.md — status-page
+# CLAUDE.md — status-ui
 
 ## Identity
 

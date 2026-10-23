@@ -1,19 +1,19 @@
-# Security Audit — `status-page`
+# Security Audit — `status-ui`
 
 **Classification:** Internal security review
-**Project:** `repos/status-page` — Vue 3 SPA showing platform health from `platform-probe`'s `/api/status` (`status.meddleware.co.uk`)
+**Project:** `repos/status-ui` — Vue 3 SPA showing platform health from `platform-probe`'s `/api/status` (`status.meddleware.co.uk`)
 **Project type:** Vue app (display only)
 **Template:** AUDIT_TEMPLATE.md (2026-10-08) + AUDIT_TEMPLATE_TS.md (2026-10-08) + AUDIT_TEMPLATE_VUE.md (2026-10-08) + AUDIT_TEMPLATE_IMG.md (2026-10-08). Not triggered: `AUDIT_TEMPLATE_SUI_CLIENT.md` (no chain code; the chain index it reports on is read by `platform-probe`, not by this page), `AUDIT_TEMPLATE_AUTH.md` / `AUDIT_TEMPLATE_PROXY.md` (the page holds no credential and forwards nothing; the ingress path rule is platform configuration), `AUDIT_TEMPLATE_PLATFORM.md` (the SOPS-encrypted checks Secret that feeds the status snapshot is mounted by `platform-probe`, not by this image; it is recorded in B.2 for completeness and belongs to the platform audit).
 **Package manager / lockfile:** npm 11, committed (361 locked packages; 26 production)   **Module format:** ESM (`type: module`)   **Publish model:** image only (`private: true`)
 **Runtime targets:** browser   **Peer dependencies:** none
 **Build tool:** vite 8.3.3, @vitejs/plugin-vue 6.0.9, vue 3.5.43, vitest 5.0.3 (jsdom 30)   **Hosting:** container image (static-server 0.1.8) behind Cloudflare; no static host   **Embedding hosts:** none
 **VITE_\* inventory:** `VITE_API_BASE` only — base URL of the probe API, baked at build, default empty (same-origin), must be empty for the public image (F4); no per-network IDs; not a secret
-**Images:** `quay.io/meddleware-org/status-page:0.1.20@sha256:8ec62b1b94764ad75843e2aea08b397f082e6907616d05e82a33678e06e8f115` (Docker Hub `meddleware/status-page`, same digest; cosign keyless signature verified 2026-10-18 against the workflow-anchored identity, `verify-digests.sh` 16/16; best-effort self-hosted registry mirror, see F18). Superseded 0.1.19 was `sha256:9dd64c5f…2475`
+**Images:** `quay.io/meddleware-org/status-ui:0.1.20@sha256:8ec62b1b94764ad75843e2aea08b397f082e6907616d05e82a33678e06e8f115` (Docker Hub `meddleware/status-ui`, same digest; cosign keyless signature verified 2026-10-18 against the workflow-anchored identity, `verify-digests.sh` 16/16; best-effort self-hosted registry mirror, see F18). Superseded 0.1.19 was `sha256:9dd64c5f…2475`
 **Base images:** build `node:24-slim@sha256:0e0ff40c…f9b6`; runtime `quay.io/meddleware-org/static-server:0.1.8@sha256:e32cf42b…4000` (0.1.8; the 0.1.19 image deployed 2026-10-09 carried 0.1.7)
 **Runtime user:** 65534:65534 (`USER`, `runAsNonRoot`)   **Runtime FS:** read-only root, nothing writable mounted
 **Deployed by:** `k8s/base/apps/status` via the overlay `k8s/clusters/meddleware-org/apps` (digest from `config/images.yaml`)
 **Build args:** `VITE_API_BASE` (public, empty) and `CSP` (the response-header policy) — none secret
-**Deployment status:** image `quay.io/meddleware-org/status-page` (+ Docker Hub; best-effort digest-preserving copy to the self-hosted registry, currently without credentials) serving `status.meddleware.co.uk` at 0.1.20 (`sha256:8ec62b1b…f115`; release tag `v0.1.20` = `fe94a6f`; released, signature verified and deployed 2026-10-18, rollout succeeded; 0.1.19 was deployed 2026-10-09; live headers and `/api/status` re-checked 2026-10-18; the snapshot lists Identity & Access, Container Registry and Chain Access → Chain index, all operational)
+**Deployment status:** image `quay.io/meddleware-org/status-ui` (+ Docker Hub; best-effort digest-preserving copy to the self-hosted registry, currently without credentials) serving `status.meddleware.co.uk` at 0.1.20 (`sha256:8ec62b1b…f115`; release tag `v0.1.20` = `fe94a6f`; released, signature verified and deployed 2026-10-18, rollout succeeded; 0.1.19 was deployed 2026-10-09; live headers and `/api/status` re-checked 2026-10-18; the snapshot lists Identity & Access, Container Registry and Chain Access → Chain index, all operational)
 **Review date:** 2026-09-19 (first pass) · re-verified 2026-10-03 · re-verified 2026-10-09 · fix wave 2026-10-18 (0.1.20, released and deployed 2026-10-18) · image build 2026-10-20 (0.1.21)
 **Reviewer:** Internal review
 **Severity ceiling:** Low — no backend, accounts, secrets or writes; the worst case is misleading status text from a compromised probe.
@@ -196,7 +196,7 @@ jobs `needs: verify`. (b) "Scan the published image" (Trivy v0.74.0, `CRITICAL,H
 `ignore-unfixed`) runs after the build and push and **before** "Install cosign" and "Sign images", so a
 failing image is never signed (it stays an unsigned tag; the cluster deploys by digest and
 `verify-digests.sh` rejects unsigned images). (c) The Dockerfile copies `package-lock.json` to
-`/usr/share/doc/status-page/` outside the served directory, so the post-push `anchore/sbom-action`
+`/usr/share/doc/status-ui/` outside the served directory, so the post-push `anchore/sbom-action`
 SBOM (SPDX, attested with cosign) lists the 26 production packages. (d) `npm run licenses` writes
 `dist/THIRD_PARTY_LICENSES` in the build stage; it is served (live `curl -I` 2026-10-10: 200,
 `text/plain`, 41271 bytes, CSP present); CI runs `check:licenses` (26 production packages, 0 without a
@@ -221,7 +221,7 @@ dropped, `seccompProfile: RuntimeDefault` and `automountServiceAccountToken: fal
 liveness probes hit `/`; requests 5m/16Mi, limits 100m/32Mi; a default-deny ingress NetworkPolicy
 admits only the nginx-ingress namespace on 8080. The deployed ref is the digest in `config/images.yaml`
 (0.1.20, `sha256:8ec62b1b…f115` since 2026-10-18; 0.1.19 was `sha256:9dd64c5f…2475`), stamped into `k8s/clusters/meddleware-org/apps/kustomization.yaml`;
-the `status-page:0.1.3` tag in the base Deployment is only the readable default that the overlay
+the `status-ui:0.1.3` tag in the base Deployment is only the readable default that the overlay
 `images:` digest replaces.
 
 ### F15 — The vitest suite is not run by CI or the release
@@ -289,7 +289,7 @@ recorded in the repository.
 and Docker Hub consoles. Bounds in place: the actions are pinned by commit SHA, the workflow runs only
 on `v*` tags with `contents: read` (plus `id-token` and `attestations` on the publish job), and the
 cluster verifies the signature. The documented verification command pins the OIDC issuer and the
-identity regexp `https://github.com/meddleware-org/status-page/.*` (repository-wide, any workflow and
+identity regexp `https://github.com/meddleware-org/status-ui/.*` (repository-wide, any workflow and
 ref). The cluster check `verify-digests.sh` no longer uses that pattern: since 2026-10-18 its default is
 workflow-anchored (`^https://github\.com/meddleware-org/${name}/\.github/workflows/docker-publish\.yml@refs/tags/v`; 16/16 valid), so only the README command stays repository-wide.
 Narrowing the README command to the publish workflow and tag refs is in the implementation suggestions.
@@ -526,7 +526,7 @@ linters and html-validate are quality gates, not security evidence.
 - (Done 0.1.20) `npm test` in `node-ci.yml` (F15); the inline-script build check (F21); the container
   probe job (F16).
 - MAY narrow the documented (README) `cosign verify` identity to the publish workflow and tag refs, as `verify-digests.sh` already does, e.g.
-  `--certificate-identity-regexp '^https://github.com/meddleware-org/status-page/\.github/workflows/docker-publish\.yml@refs/tags/v.*$'`
+  `--certificate-identity-regexp '^https://github.com/meddleware-org/status-ui/\.github/workflows/docker-publish\.yml@refs/tags/v.*$'`
   (F18).
 - MAY give the Trivy step the same `|| 'meddleware-org'` namespace fallback as the other steps (F13).
 
@@ -574,7 +574,7 @@ linters and html-validate are quality gates, not security evidence.
   F17 re-checked (stays ADJUDICATED), F18 and F20 left (maintainer). Counts: 8/8 tests; 10 RESOLVED,
   1 ADJUDICATED, 2 DEFERRED. Section D: the two code gates ticked; the two maintainer gates stay open.
 - 2026-10-18 — released and deployed (`v0.1.20` = `fe94a6f`, `0.1.20@sha256:8ec62b1b94764ad75843e2aea08b397f082e6907616d05e82a33678e06e8f115`), verified live. Cosign keyless signature verified against the workflow-anchored identity (`verify-digests.sh` 16/16); rollout (`kubectl apply -k`, apps overlay) succeeded; the live page answers 200 with the security headers and the status API reads all components operational (re-read 2026-10-18), consistent with platform-probe 0.1.7's stricter default changing no state. F18 and F20 (maintainer) unchanged.
-- 2026-10-18 — cosign identity: the default identity in `bootstrap/images/verify-digests.sh` is now workflow-anchored (`^https://github\.com/meddleware-org/${name}/\.github/workflows/docker-publish\.yml@refs/tags/v`); all 16 deployed and contingency images verified valid against it (`STRICT=0 bash bootstrap/images/verify-digests.sh`). This audit has no separate cosign finding (the point sits inside F18, DEFERRED for the token inventory), so no disposition changes; the README `cosign verify` command still pins the repository only (`https://github.com/meddleware-org/status-page/.*`), which is what remains.
+- 2026-10-18 — cosign identity: the default identity in `bootstrap/images/verify-digests.sh` is now workflow-anchored (`^https://github\.com/meddleware-org/${name}/\.github/workflows/docker-publish\.yml@refs/tags/v`); all 16 deployed and contingency images verified valid against it (`STRICT=0 bash bootstrap/images/verify-digests.sh`). This audit has no separate cosign finding (the point sits inside F18, DEFERRED for the token inventory), so no disposition changes; the README `cosign verify` command still pins the repository only (`https://github.com/meddleware-org/status-ui/.*`), which is what remains.
 - 2026-10-19 — dependency-bot status checked (read-only): `.github/dependabot.yml` carries the `ignore` rules and the repository has no open Dependabot pull requests (`gh pr list`, 2026-10-19). Versions, findings and gates were not re-examined in this pass.
   - `Dockerfile` on GitHub `main` now pins the `static-server` base at `0.1.9@sha256:af6cc284…edc72` (merged Dependabot docker PR); this repo was not re-released or redeployed for it, so the deployed image is still built on the 0.1.8 base (the stock default CSP added in 0.1.9 is replaced by this repo's own `CONTENT_SECURITY_POLICY`).
   - Dependabot policy encoded in .github/dependabot.yml (majors declined); open PRs merged 2026-10-19
@@ -582,3 +582,4 @@ linters and html-validate are quality gates, not security evidence.
 - 2026-10-20 — image build moved off QEMU in 0.1.21 (commit 53243d7): the build stage is `FROM --platform=$BUILDPLATFORM` (its output is architecture-independent static files) and the runtime stage only `COPY`s into the multi-arch static-server image; `docker-publish.yml` has no `docker/setup-qemu-action` step, so no privileged binfmt step runs in the release. Proof with rootless podman: the 0.1.20 sources with only the Dockerfile change give the same SHA-256 for every served file, the lockfile and `THIRD_PARTY_LICENSES` as the published 0.1.20 image, for amd64 (the whole image) and for the former arm64 build (every file the build stage produces; the static-server binary comes from the base, which podman 4.9 resolves to the host architecture). Checks: `npm ci`, type-check, lint, unit tests, build, `check:licenses`, `check:csp`/audit gate. No finding changed.
 - 2026-10-22 (audit close-out) — release 0.1.22 (`v0.1.22` = `7a31cbf`; `Publish (Docker)` succeeded; 0.1.21 was the native-cross-compile build of 2026-10-20). Image base: static-server 0.1.11 (Go 1.26.10 standard library, CVE-2026-111943, so the scan-before-sign gate passes; static-server F13). No source change.
   - Stale text fixed: the F20 summary line, the F20 finding, the B.2 IMG row, the supply-chain note and the Section D mirror box now say the mirror is a digest copy since 2026-10-19 and that only credentials remain (maintainer); F20 stays DEFERRED and the box stays unticked. Counts unchanged (10 RESOLVED, 1 ADJUDICATED, 2 DEFERRED, 8 Positive, as last counted).
+- 2026-10-24 — repository renamed from `status-page` to `status-ui` (workspace naming convention, `docs/architecture/ADR-0003-naming.md`): package, image, host and path names updated throughout. No finding, disposition or evidence changed.

@@ -8,7 +8,7 @@ import pluginA11y from 'eslint-plugin-vuejs-accessibility'
 // rules, so accessibility regressions are caught in CI.
 export default defineConfigWithVueTs(
   {
-    name: 'status-page/files-to-lint',
+    name: 'status-ui/files-to-lint',
     files: ['**/*.{vue,ts,mts,tsx}'],
   },
 
@@ -19,7 +19,7 @@ export default defineConfigWithVueTs(
   vueTsConfigs.recommended,
 
   {
-    name: 'status-page/a11y-overrides',
+    name: 'status-ui/a11y-overrides',
     rules: {
       // <ol role="list"> is an intentional workaround: Safari/VoiceOver drops
       // list semantics when list-style is removed, so the explicit role stays.

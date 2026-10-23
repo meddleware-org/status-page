@@ -2,7 +2,7 @@
 
 ## Scope
 
-This policy covers security issues in the `status-page` application source (`src/**`) — the
+This policy covers security issues in the `status-ui` application source (`src/**`) — the
 display-only SPA that renders the `platform-probe` `/api/status` snapshot.
 
 It does not cover `platform-probe` (see its own policy), `@meddleware/ui`/`design-tokens`, or the

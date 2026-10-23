@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Smoke test of the built status-page image: bash scripts/smoke.sh <image>
+# Smoke test of the built status-ui image: bash scripts/smoke.sh <image>
 #
 # Runs the image the way the cluster does (the image's own user, read-only root filesystem, no capabilities,
 # no privilege escalation) and checks what must hold for the page to be served safely:
@@ -12,7 +12,7 @@
 #   - `/THIRD_PARTY_LICENSES` is served; an unknown route falls back to the shell (SPA_FALLBACK);
 #   - a missing file under /assets/ is a 404 without Cache-Control; dot-files are refused; POST is a 405.
 #
-# Build first: `docker build -t status-page:ci .` (CONTAINER_ENGINE=podman for rootless podman). The engine is
+# Build first: `docker build -t status-ui:ci .` (CONTAINER_ENGINE=podman for rootless podman). The engine is
 # $CONTAINER_ENGINE, else docker when its daemon answers, else podman. Needs curl; nothing else.
 set -euo pipefail
 
