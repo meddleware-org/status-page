@@ -1,0 +1,9 @@
+# Meddleware status
+
+> Live status of Meddleware's services. Machine-readable status: /api/status (JSON).
+
+Address: https://status.meddleware.co.uk
+
+## API
+
+- [Status JSON](https://status.meddleware.co.uk/api/status)
